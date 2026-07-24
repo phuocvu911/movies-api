@@ -1,8 +1,15 @@
 package main
 
-import "movies-api/internal/database"
+import (
+	"log"
+	"movies-api/internal/database"
+)
 
 func main() {
 	//open db
-	database.Open()
+	db, err := database.Open()
+	if err != nil {
+		log.Fatalf("database connection failed: %v", err)
+	}
+	defer db.Close()
 }
