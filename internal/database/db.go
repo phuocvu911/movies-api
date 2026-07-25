@@ -7,6 +7,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+// Open the connection to data.db and set maxopenconnection is 1
 func Open() (*sql.DB, error) {
 	db, err := sql.Open("sqlite3", "./data.db?_foreign_keys=on")
 	if err != nil {
