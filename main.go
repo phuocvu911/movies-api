@@ -12,4 +12,14 @@ func main() {
 		log.Fatalf("database connection failed: %v", err)
 	}
 	defer db.Close()
+
+	//migrate
+
+	//repo init
+
+	//service init
+
+	//handlers through newRouter()
+
+	//ListenandServe()
 }
