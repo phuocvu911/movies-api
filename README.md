@@ -1,3 +1,3 @@
-Phuoc:
+Phuoc: actor, genre, basic search
 
-Hang:
+Hang: movies, pagination
