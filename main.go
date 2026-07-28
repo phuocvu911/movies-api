@@ -1,8 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"movies-api/internal/database"
+	"movies-api/internal/handlers"
+	"movies-api/internal/repository"
+	"movies-api/internal/service"
+	"net/http"
 )
 
 func main() {
@@ -24,10 +29,16 @@ func main() {
 	}
 
 	//repo init
+	actorRepo := repository.NewActorRepository(db)
 
 	//service init
+	actorService := service.NewActorService(actorRepo /*movieRepo*/)
 
 	//handlers through newRouter()
-
+	router := handlers.NewRouter(handlers.NewActorHandler(actorService))
 	//ListenandServe()
+	fmt.Println("Server is running on http://localhost:8080")
+	if err := http.ListenAndServe(":8080", router); err != nil {
+		log.Fatalf("server failed: %v", err)
+	}
 }
