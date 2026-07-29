@@ -14,6 +14,14 @@ func main() {
 	defer db.Close()
 
 	//migrate
+	if err := database.Migrate(db); err != nil {
+		log.Fatalf("migration failed: %v", err)
+	}
+
+	//seeding data()
+	if err := database.Seed(db); err != nil {
+		log.Fatalf("database seeding failed: %v", err)
+	}
 
 	//repo init
 
