@@ -114,10 +114,10 @@ func (r *ActorRepository) GetByIDForPatch(id int64) (models.ActorPatch, error) {
 	var actor models.ActorPatch
 	err := r.db.QueryRow(`SELECT id, name, birth_date FROM actors WHERE id = ?`, id).Scan(&actor.Id, &actor.Name, &actor.BirthDate)
 
-	//if we dont have actor for that id
-	if errors.Is(err, sql.ErrNoRows) {
-		return models.ActorPatch{}, customerrors.NotFoundf("actor with id %d not found", id)
-	}
+	// no need to check for sql.ErrNoRows here, because we already checked for existence in the service layer before calling this function
+	// if errors.Is(err, sql.ErrNoRows) {
+	// 	return models.ActorPatch{}, customerrors.NotFoundf("actor with id %d not found", id)
+	// }
 
 	// get the movie ids associated with the actor
 	rows, err := r.db.Query(`SELECT movie_id FROM movie_actor WHERE actor_id = ?`, id)

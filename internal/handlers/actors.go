@@ -8,12 +8,10 @@ import (
 	"net/http"
 )
 
-// actorRequest is the body for both POST and PATCH; pointers distinguish
-// absent fields from zero values so PATCH can be partial.
+// actorRequest is used to decode the request body for creating an actor.
 type actorRequest struct {
-	Name      *string  `json:"name" validate:"required"`
-	BirthDate *string  `json:"birth_date" validate:"required,datetime=2006-01-02,pastdate"`
-	MovieIDs  *[]int64 `json:"movie_ids" validate:"omitempty,dive,gt=0"`
+	Name      *string `json:"name" validate:"required"`
+	BirthDate *string `json:"birth_date" validate:"required,datetime=2006-01-02,pastdate"`
 }
 
 // ActorHandler exposes the actor endpoints.
@@ -150,7 +148,7 @@ func (h *ActorHandler) Movies(w http.ResponseWriter, r *http.Request) {
 		respondError(w, err)
 		return
 	}
-	
+
 	result, err := h.service.Movies(id)
 	if err != nil {
 		respondError(w, err)
