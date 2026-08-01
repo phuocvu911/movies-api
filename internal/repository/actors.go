@@ -55,7 +55,7 @@ func (r *ActorRepository) Create(name, birthDate string) (models.Actor, error) {
 
 // GetAll returns all actors.
 func (r *ActorRepository) GetAll() ([]models.Actor, error) {
-	rows, err := r.db.Query("SELECT * FROM actors")
+	rows, err := r.db.Query("SELECT id, name, birth_date FROM actors")
 	if err != nil {
 		return nil, err
 	}
@@ -68,6 +68,30 @@ func (r *ActorRepository) GetAll() ([]models.Actor, error) {
 			return nil, err
 		}
 		actors = append(actors, actor)
+	}
+	return actors, nil
+}
+
+// GetByName returns actors matching the given name (case-insensitive)
+func (r *ActorRepository) GetByName(name string) ([]models.Actor, error) {
+	rows, err := r.db.Query("SELECT id, name, birth_date FROM actors WHERE LOWER(name) LIKE ?", "%"+name+"%")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	actors := []models.Actor{}
+	for rows.Next() {
+		var actor models.Actor
+		if err := rows.Scan(&actor.ID, &actor.Name, &actor.BirthDate); err != nil {
+			return nil, err
+		}
+		actors = append(actors, actor)
+	}
+
+	// If no actors found, return a NotFoundError
+	if len(actors) == 0 {
+		return nil, customerrors.NotFoundf("no actors found with name %s", name)
 	}
 	return actors, nil
 }
@@ -119,7 +143,7 @@ func (r *ActorRepository) GetByIDForPatch(id int64) (models.ActorPatch, error) {
 
 // GetByNameAndBirthDate returns an actor by name and birth date (to check for duplicate actor that client try to write to db)
 func (r *ActorRepository) GetByNameAndBirthDate(name, birthDate string) (models.Actor, error) {
-	row := r.db.QueryRow("SELECT * FROM actors WHERE name = ? AND birth_date = ?", name, birthDate)
+	row := r.db.QueryRow("SELECT id, name, birth_date FROM actors WHERE name = ? AND birth_date = ?", name, birthDate)
 	var actor models.Actor
 	if err := row.Scan(&actor.ID, &actor.Name, &actor.BirthDate); err != nil {
 		return models.Actor{}, err

@@ -55,7 +55,20 @@ func (h *ActorHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 // GetAll handles GET /api/actors.
 func (h *ActorHandler) GetAll(w http.ResponseWriter, r *http.Request) {
-	actors, err := h.service.GetAll()
+	// Check for optional name query parameter
+	name := r.URL.Query().Get("name")
+	
+	var actors []models.Actor
+	var err error
+	
+	if name != "" {
+		// Filter by name (case-insensitive)
+		actors, err = h.service.GetByName(name)
+	} else {
+		// Return all actors
+		actors, err = h.service.GetAll()
+	}
+	
 	if err != nil {
 		respondError(w, err)
 		return

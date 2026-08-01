@@ -44,6 +44,11 @@ func (s *ActorService) GetAll() ([]models.Actor, error) {
 	return s.repo.GetAll()
 }
 
+// GetByName returns actors matching the given name (case-insensitive)
+func (s *ActorService) GetByName(name string) ([]models.Actor, error) {
+	return s.repo.GetByName(name)
+}
+
 // GetByID returns an actor by ID.
 func (s *ActorService) GetByID(id int64) (models.Actor, error) {
 	return s.repo.GetByID(id)
