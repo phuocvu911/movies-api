@@ -57,18 +57,18 @@ func (h *ActorHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *ActorHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	// Check for optional name query parameter
 	name := r.URL.Query().Get("name")
-	
+
 	var actors []models.Actor
 	var err error
-	
+
 	if name != "" {
-		// Filter by name (case-insensitive)
+		// Filter by name (partially, case-insensitive)
 		actors, err = h.service.GetByName(name)
 	} else {
 		// Return all actors
 		actors, err = h.service.GetAll()
 	}
-	
+
 	if err != nil {
 		respondError(w, err)
 		return
@@ -140,4 +140,21 @@ func (h *ActorHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// Movies handles GET /api/actors/{id}/movies.
+// Movies handles GET /api/actors/{id}/movies.
+func (h *ActorHandler) Movies(w http.ResponseWriter, r *http.Request) {
+	id, err := pathID(r)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+	
+	result, err := h.service.Movies(id)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
 }

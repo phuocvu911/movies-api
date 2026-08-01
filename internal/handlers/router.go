@@ -15,6 +15,7 @@ func NewRouter( /*genres *GenreHandler, movies *MovieHandler,*/ actors *ActorHan
 	mux.HandleFunc("GET /api/actors/{id}", actors.GetByID)
 	mux.HandleFunc("PATCH /api/actors/{id}", actors.Update)
 	mux.HandleFunc("DELETE /api/actors/{id}", actors.Delete)
+	mux.HandleFunc("GET /api/actors/{id}/movies", actors.Movies)
 
 	return loggingMiddleware(mux)
 }

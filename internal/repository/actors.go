@@ -72,7 +72,7 @@ func (r *ActorRepository) GetAll() ([]models.Actor, error) {
 	return actors, nil
 }
 
-// GetByName returns actors matching the given name (case-insensitive)
+// GetByName returns actors matching the given name (partially, case-insensitive)
 func (r *ActorRepository) GetByName(name string) ([]models.Actor, error) {
 	rows, err := r.db.Query("SELECT id, name, birth_date FROM actors WHERE LOWER(name) LIKE ?", "%"+name+"%")
 	if err != nil {
@@ -231,4 +231,31 @@ func (r *ActorRepository) MovieCount(id int64) (int, error) {
 	var count int
 	err := r.db.QueryRow(`SELECT COUNT(*) FROM movie_actor WHERE actor_id = ?`, id).Scan(&count)
 	return count, err
+}
+
+// GetMoviesByActorID returns all movies associated with an actor.
+func (r *ActorRepository) GetMoviesByActorID(actorID int64) ([]models.Movie, error) {
+	rows, err := r.db.Query(`
+		SELECT m.id, m.title, m.release_year, m.duration
+		FROM movies m
+		JOIN movie_actor ma ON m.id = ma.movie_id
+		WHERE ma.actor_id = ?`, actorID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var movies []models.Movie
+	for rows.Next() {
+		var movie models.Movie
+		if err := rows.Scan(&movie.ID, &movie.Title, &movie.Year, &movie.Duration); err != nil {
+			return nil, err
+		}
+		movies = append(movies, movie)
+	}
+	if len(movies) == 0 {
+		return nil, customerrors.NotFoundf("no movies found for actor with id %d", actorID)
+	}
+
+	return movies, nil
 }

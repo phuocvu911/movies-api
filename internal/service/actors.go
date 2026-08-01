@@ -98,3 +98,12 @@ func (s *ActorService) Delete(id int64, force bool) error {
 	}
 	return s.repo.Delete(id)
 }
+
+// Movies returns all movies associated with an actor.
+func (s *ActorService) Movies(actorID int64) ([]models.Movie, error) {
+	//check if the actor exists
+	if _, err := s.repo.GetByID(actorID); err != nil {
+		return nil, err
+	}
+	return s.repo.GetMoviesByActorID(actorID)
+}
