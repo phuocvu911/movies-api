@@ -6,7 +6,7 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-// V is the single shared validator instance for the whole app.
+// V is the single shared validator instance for the whole server.
 var V = newValidator()
 
 func newValidator() *validator.Validate {
