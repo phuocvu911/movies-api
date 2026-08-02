@@ -25,7 +25,7 @@ func NewActorRepository(db *sql.DB) *ActorRepository {
 	return &ActorRepository{db: db}
 }
 
-// Create creates a new actor and associates it with the given movie IDs.
+// Create creates a new actor.
 func (r *ActorRepository) Create(name, birthDate string) (models.Actor, error) {
 	tx, err := r.db.Begin()
 	if err != nil {
@@ -48,7 +48,7 @@ func (r *ActorRepository) Create(name, birthDate string) (models.Actor, error) {
 	}
 
 	return models.Actor{
-		ID:        int64(actorID),
+		ID:        actorID,
 		Name:      name,
 		BirthDate: birthDate,
 	}, nil

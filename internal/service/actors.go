@@ -29,7 +29,7 @@ func NewActorService(actors *repository.ActorRepository /*, movies *repository.M
 	return &ActorService{repo: actors /*movies: movies*/}
 }
 
-// Create creates a new actor and associates it with the given movie IDs.
+// Create creates a new actor.
 func (s *ActorService) Create(input ActorInput) (models.Actor, error) {
 	//check if actor name and birthdate already exist in the actors table
 	existingActor, err := s.repo.GetByNameAndBirthDate(input.Name, input.BirthDate)
