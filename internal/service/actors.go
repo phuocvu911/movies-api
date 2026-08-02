@@ -74,11 +74,31 @@ func (s *ActorService) Update(id int64, p models.ActorPatch) (models.ActorPatch,
 }
 
 // checkMovieIDs checks if all movie IDs in request body exist in the movies table.
-func (s *ActorService) checkMovieIDs(movieIDs []int64) error {
-	for _, movieID := range movieIDs {
-		if _, err := s.repo.GetMovieByID(movieID); err != nil {
-			return err
+// func (s *ActorService) checkMovieIDs1(movieIDs []int64) error {
+// 	for _, movieID := range movieIDs {
+// 		if _, err := s.repo.GetMovieByID(movieID); err != nil {
+// 			return err
+// 		}
+// 	}
+// 	return nil
+// }
+
+// checkMovieIDs checks if all movie IDs in request body exist in the movies table.
+func (s *ActorService) checkMovieIDs(requestedMovieIDs []int64) error {
+	existingMovieIDs, err := s.repo.CheckExistingMovieIDs(requestedMovieIDs)
+	if err != nil {
+		return err
+	}
+
+	// Check for any requested movie IDs that do not exist in the movies table
+	missingMovieIDs := []int64{}
+	for _, movieID := range requestedMovieIDs {
+		if !existingMovieIDs[movieID] {
+			missingMovieIDs = append(missingMovieIDs, movieID)
 		}
+	}
+	if len(missingMovieIDs) > 0 {
+		return customerrors.NotFoundf("The following movie ID(s) not exist: %v", missingMovieIDs)
 	}
 	return nil
 }

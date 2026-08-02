@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"movies-api/internal/customerrors"
 	"movies-api/internal/models"
 	"strings"
@@ -91,7 +92,7 @@ func (r *ActorRepository) GetByName(name string) ([]models.Actor, error) {
 
 	// If no actors found, return a NotFoundError
 	if len(actors) == 0 {
-		return nil, customerrors.NotFoundf("no actors found with name %s", name)
+		return nil, customerrors.NotFoundf("No actor found with name %s", name)
 	}
 	return actors, nil
 }
@@ -103,7 +104,7 @@ func (r *ActorRepository) GetByID(id int64) (models.Actor, error) {
 
 	//if we dont have actor for that id
 	if errors.Is(err, sql.ErrNoRows) {
-		return models.Actor{}, customerrors.NotFoundf("actor with id %d not found", id)
+		return models.Actor{}, customerrors.NotFoundf("Actor with id %d not found", id)
 	}
 
 	return actor, err
@@ -215,15 +216,46 @@ func (r *ActorRepository) Delete(id int64) error {
 
 // move this to movie repository later
 // GetMovieByID returns a single movie by ID or a NotFoundError.
-func (r *ActorRepository) GetMovieByID(id int64) (int, error) {
-	var movie_id int
-	err := r.db.QueryRow(`SELECT id FROM movies WHERE id = ?`, id).Scan(&movie_id)
+// func (r *ActorRepository) GetMovieByID(id int64) (int, error) {
+// 	var movie_id int
+// 	err := r.db.QueryRow(`SELECT id FROM movies WHERE id = ?`, id).Scan(&movie_id)
 
-	//if we dont have movie for that id
-	if errors.Is(err, sql.ErrNoRows) {
-		return 0, customerrors.NotFoundf("movie with id %d not found", id)
+// 	//if we dont have movie for that id
+// 	if errors.Is(err, sql.ErrNoRows) {
+// 		return 0, customerrors.NotFoundf("movie with id %d not found", id)
+// 	}
+// 	return movie_id, err
+// }
+
+// checkExistingMovieIDs checks which of the given IDs exist in the movies table and returns a map of existing IDs.
+// This is more efficient than checking each ID individually. 1 hit to the database instead of n hits for n movie ids in the request body.
+func (r *ActorRepository) CheckExistingMovieIDs(movie_ids []int64) (map[int64]bool, error) {
+	placeholders := make([]string, len(movie_ids))
+	args := make([]any, len(movie_ids))
+
+	// Create placeholders and arguments for the SQL query, grows by the number of ids in the request body
+	for i, id := range movie_ids {
+		placeholders[i] = "?"
+		args[i] = id
 	}
-	return movie_id, err
+
+	//still serialize the SQL query
+	query := fmt.Sprintf("SELECT id FROM movies WHERE id IN (%s)", strings.Join(placeholders, ","))
+	rows, err := r.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	existing := make(map[int64]bool)
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		existing[id] = true
+	}
+	return existing, rows.Err()
 }
 
 // MovieCount returns how many movies are linked to the actor.
@@ -254,7 +286,7 @@ func (r *ActorRepository) GetMoviesByActorID(actorID int64) ([]models.Movie, err
 		movies = append(movies, movie)
 	}
 	if len(movies) == 0 {
-		return nil, customerrors.NotFoundf("no movies found for actor with id %d", actorID)
+		return nil, customerrors.NotFoundf("No movie found for actor with id %d", actorID)
 	}
 
 	return movies, nil
