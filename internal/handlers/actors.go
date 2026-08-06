@@ -8,24 +8,19 @@ import (
 	"net/http"
 )
 
-// actorRequest is used to decode the request body for creating an actor.
-type actorRequest struct {
-	Name      *string `json:"name" validate:"required"`
-	BirthDate *string `json:"birth_date" validate:"required,datetime=2006-01-02,pastdate"`
-}
-
 // ActorHandler exposes the actor endpoints.
 type ActorHandler struct {
 	service *service.ActorService
 }
 
+// NewActorHandler creates a new ActorHandler.
 func NewActorHandler(s *service.ActorService) *ActorHandler {
 	return &ActorHandler{service: s}
 }
 
 // Create handles POST /api/actors.
 func (h *ActorHandler) Create(w http.ResponseWriter, r *http.Request) {
-	var actorRequest actorRequest
+	var actorRequest models.ActorRequest
 
 	if err := decodeJSON(r, &actorRequest); err != nil {
 		respondError(w, err)
@@ -37,12 +32,7 @@ func (h *ActorHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	input := service.ActorInput{
-		Name:      *actorRequest.Name,
-		BirthDate: *actorRequest.BirthDate,
-	}
-
-	actor, err := h.service.Create(input)
+	actor, err := h.service.Create(actorRequest)
 	if err != nil {
 		respondError(w, err)
 		return
@@ -141,7 +131,6 @@ func (h *ActorHandler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 // Movies handles GET /api/actors/{id}/movies.
-// Movies handles GET /api/actors/{id}/movies.
 func (h *ActorHandler) Movies(w http.ResponseWriter, r *http.Request) {
 	id, err := pathID(r)
 	if err != nil {
@@ -149,10 +138,10 @@ func (h *ActorHandler) Movies(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.service.Movies(id)
+	movies, err := h.service.Movies(id)
 	if err != nil {
 		respondError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, result)
+	writeJSON(w, http.StatusOK, movies)
 }
