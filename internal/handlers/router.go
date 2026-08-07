@@ -5,7 +5,7 @@ import (
 )
 
 // NewRouter is where we register endpoint to the mux, then I can wrap it around the middleware -> cleaner main.
-func NewRouter(genres *GenreHandler /*movies *MovieHandler,*/, actors *ActorHandler) http.Handler {
+func NewRouter(genres *GenreHandler, movies *MovieHandler, actors *ActorHandler) http.Handler {
 	mux := http.NewServeMux()
 
 	// register here
@@ -24,6 +24,9 @@ func NewRouter(genres *GenreHandler /*movies *MovieHandler,*/, actors *ActorHand
 	mux.HandleFunc("PATCH /api/genres/{id}", genres.Update)
 	mux.HandleFunc("DELETE /api/genres/{id}", genres.Delete)
 	mux.HandleFunc("GET /api/genres/{id}/movies", genres.Movies)
+
+	//movies endpoints
+	mux.HandleFunc("GET /api/movies", movies.GetAll)
 
 	return loggingMiddleware(mux)
 }
