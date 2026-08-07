@@ -23,7 +23,7 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 // decodeJSON decode json body into struct variable
 func decodeJSON(r *http.Request, v any) error {
 	if err := json.NewDecoder(r.Body).Decode(v); err != nil {
-		return err
+		return customerrors.Validationf("invalid request body: %v", err)
 	}
 	return nil
 }

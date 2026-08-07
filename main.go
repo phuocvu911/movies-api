@@ -30,12 +30,17 @@ func main() {
 
 	//repo init
 	actorRepo := repository.NewActorRepository(db)
+	genreRepo := repository.NewGenreRepository(db)
 
 	//service init
 	actorService := service.NewActorService(actorRepo /*movieRepo*/)
+	genreSerive := service.NewGenreService(genreRepo)
 
 	//handlers through newRouter()
-	router := handlers.NewRouter(handlers.NewActorHandler(actorService))
+	router := handlers.NewRouter(
+		handlers.NewGenreHandler(genreSerive),
+		handlers.NewActorHandler(actorService),
+	)
 	//ListenandServe()
 	fmt.Println("Server is running on http://localhost:8080")
 	if err := http.ListenAndServe(":8080", router); err != nil {
