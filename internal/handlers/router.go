@@ -27,6 +27,7 @@ func NewRouter(genres *GenreHandler, movies *MovieHandler, actors *ActorHandler)
 
 	//movies endpoints
 	mux.HandleFunc("GET /api/movies", movies.GetAll)
+	mux.HandleFunc("GET /api/movies/search", movies.Search)
 
 	return loggingMiddleware(mux)
 }

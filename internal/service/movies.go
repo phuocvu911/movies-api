@@ -16,3 +16,8 @@ func NewMovieService(repo *repository.MovieRepository) *MovieService {
 func (s *MovieService) GetAll() ([]models.Movie, error) {
 	return s.repo.GetAll()
 }
+
+// Search searches for movies by title.
+func (s *MovieService) Search(title string) ([]models.Movie, error) {
+	return s.repo.Search(title)
+}
