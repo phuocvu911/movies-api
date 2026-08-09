@@ -25,6 +25,7 @@ func main() {
 
 	//seeding data()
 	if err := database.Seed(db); err != nil {
+		
 		log.Fatalf("database seeding failed: %v", err)
 	}
 
@@ -35,12 +36,12 @@ func main() {
 
 	//service init
 	actorService := service.NewActorService(actorRepo /*movieRepo*/)
-	genreSerive := service.NewGenreService(genreRepo)
+	genreService := service.NewGenreService(genreRepo)
 	movieService := service.NewMovieService(movieRepo)
 
 	//handlers through newRouter()
 	router := handlers.NewRouter(
-		handlers.NewGenreHandler(genreSerive),
+		handlers.NewGenreHandler(genreService),
 		handlers.NewMovieHandler(movieService),
 		handlers.NewActorHandler(actorService),
 	)
