@@ -5,6 +5,7 @@ import (
 	"errors"
 	"movies-api/internal/customerrors"
 	"movies-api/internal/models"
+	"strings"
 )
 
 // GenreRepository provides raw-SQL data access for genres.
@@ -108,6 +109,10 @@ func (r *GenreRepository) GetMoviesByGenreID(genreID int64) ([]models.Movie, err
 func (r *GenreRepository) Update(id int64, input models.GenreRequest) (models.Genre, error) {
 	result, err := r.db.Exec("UPDATE genres SET name = ? WHERE id = ?", input.Name, id)
 	if err != nil {
+		// If the error is due to a unique constraint violation, return a ConflictError
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			return models.Genre{}, customerrors.Conflictf("Genre with the same name already exists")
+		}
 		return models.Genre{}, err
 	}
 
