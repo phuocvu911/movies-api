@@ -15,7 +15,6 @@ CREATE TABLE IF NOT EXISTS actors (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     name       TEXT NOT NULL,
     birth_date TEXT NOT NULL
-        CHECK (birth_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]') --for checking ISO8601
 );
 
 CREATE TABLE IF NOT EXISTS movies (

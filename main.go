@@ -25,22 +25,27 @@ func main() {
 
 	//seeding data()
 	if err := database.Seed(db); err != nil {
+		
 		log.Fatalf("database seeding failed: %v", err)
 	}
 
 	//repo init
 	actorRepo := repository.NewActorRepository(db)
 	genreRepo := repository.NewGenreRepository(db)
+	movieRepo := repository.NewMovieRepository(db)
 
 	//service init
 	actorService := service.NewActorService(actorRepo /*movieRepo*/)
-	genreSerive := service.NewGenreService(genreRepo)
+	genreService := service.NewGenreService(genreRepo)
+	movieService := service.NewMovieService(movieRepo)
 
 	//handlers through newRouter()
 	router := handlers.NewRouter(
-		handlers.NewGenreHandler(genreSerive),
+		handlers.NewGenreHandler(genreService),
+		handlers.NewMovieHandler(movieService),
 		handlers.NewActorHandler(actorService),
 	)
+
 	//ListenandServe()
 	fmt.Println("Server is running on http://localhost:8080")
 	if err := http.ListenAndServe(":8080", router); err != nil {

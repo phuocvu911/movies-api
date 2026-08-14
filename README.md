@@ -29,6 +29,31 @@ go run main.go
 ...
 
 ### Basic Search
-...
+
+The API supports searching movies by title using a query parameter (matches partial titles, case-insensitive).
+If the `title` query parameter is not provided or is empty, the API will return a `400 Bad Request` error since we already have a `GET /api/movies` endpoint that returns all movies. Using `search` implies you're searching for something specific, so an empty query is considered invalid.
+
+**Endpoint:**
+```
+GET /api/movies/search?title={search_term}
+```
+
+**Usage:**
+```bash
+curl "http://localhost:8080/api/movies/search?title=iNcep"
+```
+
+**Response:**
+
+```json
+[
+    {
+        "id": 2,
+        "title": "Inception",
+        "release_year": 2010,
+        "duration": 148
+    }
+]
+```
 
 ### Middlewares
