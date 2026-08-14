@@ -72,3 +72,18 @@ func getVisitor(ip string) *rate.Limiter {
 	v.lastSeen = time.Now()
 	return v.limiter
 }
+
+// CleanupVisitors runs periodically(1 minute) to remove visitors that haven't been seen for more than 3 minutes to free up memory.
+func CleanupVisitors() {
+	for {
+		time.Sleep(time.Minute)
+
+		mu.Lock()
+		for ip, v := range visitors {
+			if time.Since(v.lastSeen) > 3*time.Minute {
+				delete(visitors, ip)
+			}
+		}
+		mu.Unlock()
+	}
+}

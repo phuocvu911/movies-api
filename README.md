@@ -73,6 +73,7 @@ The API server includes three middlewares for request handling and protection:
 - Limit: 100 requests per second with a burst capacity of 150 requests (you can adjust these values in the `rateLimit` middleware function to see the effect).
 - Returns `429 Too Many Requests` when rate limit is exceeded
 - Prevents abuse and ensures fair API usage
+- There is also a go routine run in the background to clean up the rate limiters for IPs that haven't made requests in the last 3 minutes, preventing memory bloat.
 
 The flow of requests when hitting the API is as follows:
 ```

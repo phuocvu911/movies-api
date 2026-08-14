@@ -25,7 +25,7 @@ func main() {
 
 	//seeding data()
 	if err := database.Seed(db); err != nil {
-		
+
 		log.Fatalf("database seeding failed: %v", err)
 	}
 
@@ -45,6 +45,9 @@ func main() {
 		handlers.NewMovieHandler(movieService),
 		handlers.NewActorHandler(actorService),
 	)
+
+	// Start the cleanup goroutine for rate limiters
+	go handlers.CleanupVisitors()
 
 	//ListenandServe()
 	fmt.Println("Server is running on http://localhost:8080")
