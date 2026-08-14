@@ -57,3 +57,25 @@ curl "http://localhost:8080/api/movies/search?title=iNcep"
 ```
 
 ### Middlewares
+
+The API server includes three middlewares for request handling and protection:
+
+**1. Logging Middleware**
+- Logs each request's HTTP method, URL path, and execution duration.
+- Provides visibility into API usage and performance right in terminal.
+
+**2. JSON Content-Type Validation**
+- Enforces `Content-Type: application/json` for POST and PATCH requests.
+- Returns `415 Unsupported Media Type` error if the header is missing or incorrect.
+- Ensures consistent request/response handling.
+
+**3. Rate Limiting**
+- Implements per-IP rate limiting using [token bucket algorithm](https://www.geeksforgeeks.org/system-design/rate-limiting-algorithms-system-design/)
+- Limit: 100 requests per second with a burst capacity of 150 requests (you can adjust these values in the `rateLimit` middleware function to see the effect).
+- Returns `429 Too Many Requests` when rate limit is exceeded
+- Prevents abuse and ensures fair API usage
+
+The flow of requests when hitting the API is as follows:
+```
+request → Logging → RateLimit → RequireJSON →  handler
+```
