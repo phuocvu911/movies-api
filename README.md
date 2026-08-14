@@ -69,7 +69,7 @@ The API server includes three middlewares for request handling and protection:
 - Ensures consistent request/response handling.
 
 **3. Rate Limiting**
-- Implements per-IP rate limiting using [token bucket algorithm](https://www.geeksforgeeks.org/system-design/rate-limiting-algorithms-system-design/)
+- Implements per-IP rate limiting using [token bucket algorithm](https://www.geeksforgeeks.org/system-design/rate-limiting-algorithms-system-design/) with the `golang.org/x/time/rate` package.
 - Limit: 100 requests per second with a burst capacity of 150 requests (you can adjust these values in the `rateLimit` middleware function to see the effect).
 - Returns `429 Too Many Requests` when rate limit is exceeded
 - Prevents abuse and ensures fair API usage
