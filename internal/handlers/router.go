@@ -30,5 +30,5 @@ func NewRouter(genres *GenreHandler, movies *MovieHandler, actors *ActorHandler)
 	mux.HandleFunc("GET /api/movies/search", movies.Search)
 
 	// wrap the mux with middleware
-	return loggingMiddleware(requireJSON(mux))
+	return loggingMiddleware(requireJSON(rateLimit(mux)))
 }
