@@ -32,3 +32,17 @@ type Genre struct {
 	ID   int64  `json:"id"`
 	Name string `json:"name"`
 }
+
+// PageInfo carries pagination metadata for list responses.
+type PageInfo struct {
+	Page          int `json:"page"`
+	Size          int `json:"size"`
+	TotalElements int `json:"totalElements"`
+	TotalPages    int `json:"totalPages"`
+}
+
+// Page is a paginated list response envelope, generic over the type of results it contains.
+type Page[T any] struct {
+	Results    []T      `json:"results"`
+	Pagination PageInfo `json:"pagination"`
+}

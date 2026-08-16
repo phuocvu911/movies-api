@@ -37,10 +37,19 @@ func (r *ActorRepository) Create(name, birthDate string) (models.Actor, error) {
 }
 
 // GetAll returns all actors.
-func (r *ActorRepository) GetAll() ([]models.Actor, error) {
-	rows, err := r.db.Query("SELECT id, name, birth_date FROM actors")
+func (r *ActorRepository) GetAll(limit, offset int) ([]models.Actor, int, error) {
+	var total int
+	if err := r.db.QueryRow(`SELECT COUNT(*) FROM actors`).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	if total < offset {
+		return nil, total, customerrors.Validationf("Page number is out of range")
+	}
+
+	rows, err := r.db.Query("SELECT id, name, birth_date FROM actors ORDER BY id LIMIT ? OFFSET ?", limit, offset)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -48,22 +57,36 @@ func (r *ActorRepository) GetAll() ([]models.Actor, error) {
 	for rows.Next() {
 		var actor models.Actor
 		if err := rows.Scan(&actor.ID, &actor.Name, &actor.BirthDate); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		actors = append(actors, actor)
 	}
 	// If no actors found, return a NotFoundError
 	if len(actors) == 0 {
-		return nil, customerrors.NotFoundf("No actor found")
+		return nil, 0, customerrors.NotFoundf("No actor found")
 	}
-	return actors, nil
+	return actors, total, nil
 }
 
 // GetByName returns actors matching the given name (partially, case-insensitive)
-func (r *ActorRepository) GetByName(name string) ([]models.Actor, error) {
-	rows, err := r.db.Query("SELECT id, name, birth_date FROM actors WHERE LOWER(name) LIKE ?", "%"+name+"%")
+func (r *ActorRepository) GetByName(name string, limit, offset int) ([]models.Actor, int, error) {
+	var total int
+	if err := r.db.QueryRow(`SELECT COUNT(*) FROM actors WHERE LOWER(name) LIKE ?`, "%"+name+"%").Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	if total < offset {
+		return nil, total, customerrors.Validationf("Page number is out of range")
+	}
+
+	// If no actors found, return a NotFoundError
+	if total == 0 {
+		return nil, 0, customerrors.NotFoundf("No actor found with name %s", name)
+	}
+
+	rows, err := r.db.Query("SELECT id, name, birth_date FROM actors WHERE LOWER(name) LIKE ? ORDER BY id LIMIT ? OFFSET ?", "%"+name+"%", limit, offset)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -71,16 +94,12 @@ func (r *ActorRepository) GetByName(name string) ([]models.Actor, error) {
 	for rows.Next() {
 		var actor models.Actor
 		if err := rows.Scan(&actor.ID, &actor.Name, &actor.BirthDate); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		actors = append(actors, actor)
 	}
 
-	// If no actors found, return a NotFoundError
-	if len(actors) == 0 {
-		return nil, customerrors.NotFoundf("No actor found with name %s", name)
-	}
-	return actors, nil
+	return actors, total, nil
 }
 
 // GetByID returns a single actor or a NotFoundError.

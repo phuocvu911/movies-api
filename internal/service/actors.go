@@ -27,14 +27,23 @@ func (s *ActorService) Create(input models.ActorRequest) (models.Actor, error) {
 }
 
 // GetAll returns all actors.
-func (s *ActorService) GetAll() ([]models.Actor, error) {
-	return s.repo.GetAll()
+func (s *ActorService) GetAll(page, size int) (models.Page[models.Actor], error) {
+	actors, total, err := s.repo.GetAll(size, page*size)
+	if err != nil {
+		return models.Page[models.Actor]{}, err
+	}
+	return newPage(actors, page, size, total), nil
 }
 
 // GetByName returns actors matching the given name (case-insensitive)
-func (s *ActorService) GetByName(name string) ([]models.Actor, error) {
-	return s.repo.GetByName(name)
+func (s *ActorService) GetByName(name string, page, size int) (models.Page[models.Actor], error) {
+	actors, total, err := s.repo.GetByName(name, size, page*size)
+	if err != nil {
+		return models.Page[models.Actor]{}, err
+	}
+	return newPage(actors, page, size, total), nil
 }
+
 
 // GetByID returns an actor by ID.
 func (s *ActorService) GetByID(id int64) (models.Actor, error) {
