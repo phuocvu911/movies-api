@@ -86,10 +86,14 @@ func (s *ActorService) Delete(id int64, force bool) error {
 }
 
 // Movies returns all movies associated with an actor.
-func (s *ActorService) Movies(actorID int64) ([]models.Movie, error) {
+func (s *ActorService) Movies(actorID int64, page, size int) (models.Page[models.Movie], error) {
 	//check if the actor exists
 	if _, err := s.repo.GetByID(actorID); err != nil {
-		return nil, err
+		return models.Page[models.Movie]{}, err
 	}
-	return s.repo.GetMoviesByActorID(actorID)
+	movies, total, err := s.repo.GetMoviesByActorID(actorID, size, page*size)
+	if err != nil {
+		return models.Page[models.Movie]{}, err
+	}
+	return newPage(movies, page, size, total), nil
 }

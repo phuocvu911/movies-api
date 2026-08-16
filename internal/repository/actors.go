@@ -232,14 +232,30 @@ func (r *ActorRepository) MovieCount(id int64) (int, error) {
 }
 
 // GetMoviesByActorID returns all movies associated with an actor.
-func (r *ActorRepository) GetMoviesByActorID(actorID int64) ([]models.Movie, error) {
+func (r *ActorRepository) GetMoviesByActorID(actorID int64, limit, offset int) ([]models.Movie, int, error) {
+	total := 0
+	if err := r.db.QueryRow(`SELECT COUNT(*) FROM movie_actor WHERE actor_id = ?`, actorID).Scan(&total); err != nil {
+		return []models.Movie{}, 0, err
+	}
+
+	if total == 0 {
+		return []models.Movie{}, 0, customerrors.NotFoundf("No movie found for actor with id %d", actorID)
+	}
+
+	if total < offset {
+		return []models.Movie{}, total, customerrors.Validationf("Page number is out of range")
+	}
+
 	rows, err := r.db.Query(`
 		SELECT m.id, m.title, m.release_year, m.duration
 		FROM movies m
 		JOIN movie_actor ma ON m.id = ma.movie_id
-		WHERE ma.actor_id = ?`, actorID)
+		WHERE ma.actor_id = ?
+		ORDER BY m.id
+		LIMIT ? 
+		OFFSET ?`, actorID, limit, offset)
 	if err != nil {
-		return nil, err
+		return []models.Movie{}, 0, err
 	}
 	defer rows.Close()
 
@@ -247,13 +263,10 @@ func (r *ActorRepository) GetMoviesByActorID(actorID int64) ([]models.Movie, err
 	for rows.Next() {
 		var movie models.Movie
 		if err := rows.Scan(&movie.ID, &movie.Title, &movie.Year, &movie.Duration); err != nil {
-			return nil, err
+			return []models.Movie{}, 0, err
 		}
 		movies = append(movies, movie)
 	}
-	if len(movies) == 0 {
-		return nil, customerrors.NotFoundf("No movie found for actor with id %d", actorID)
-	}
 
-	return movies, nil
+	return movies, total, nil
 }
