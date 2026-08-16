@@ -26,8 +26,12 @@ func (s *GenreService) Create(input models.GenreRequest) (models.Genre, error) {
 }
 
 // GetAll returns all genres.
-func (s *GenreService) GetAll() ([]models.Genre, error) {
-	return s.repo.GetAll()
+func (s *GenreService) GetAll(page, size int) (models.Page[models.Genre], error) {
+	genres, total, err := s.repo.GetAll(size, page*size)
+	if err != nil {
+		return models.Page[models.Genre]{}, err
+	}
+	return newPage(genres, page, size, total), nil
 }
 
 // GetByID returns a genre by its ID.
@@ -36,13 +40,18 @@ func (s *GenreService) GetByID(id int64) (models.Genre, error) {
 }
 
 // Movies returns all movies associated with a specific genre ID.
-func (s *GenreService) Movies(id int64) ([]models.Movie, error) {
+func (s *GenreService) Movies(id int64, page, size int) (models.Page[models.Movie], error) {
 	// Check if the genre ID exists
 	if _, err := s.repo.GetByID(id); err != nil {
-		return nil, err
+		return models.Page[models.Movie]{}, err
 	}
 
-	return s.repo.GetMoviesByGenreID(id)
+	movies, total, err := s.repo.GetMoviesByGenreID(id, size, page*size)
+	if err != nil {
+		return models.Page[models.Movie]{}, err
+	}
+
+	return newPage(movies, page, size, total), nil
 }
 
 // Update handles updating a genre by ID

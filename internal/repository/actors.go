@@ -44,7 +44,7 @@ func (r *ActorRepository) GetAll(limit, offset int) ([]models.Actor, int, error)
 	}
 
 	if total < offset {
-		return nil, total, customerrors.Validationf("Page number is out of range")
+		return nil, total, customerrors.NotFoundf("Page number is out of range")
 	}
 
 	rows, err := r.db.Query("SELECT id, name, birth_date FROM actors ORDER BY id LIMIT ? OFFSET ?", limit, offset)
@@ -76,7 +76,7 @@ func (r *ActorRepository) GetByName(name string, limit, offset int) ([]models.Ac
 	}
 
 	if total < offset {
-		return nil, total, customerrors.Validationf("Page number is out of range")
+		return nil, total, customerrors.NotFoundf("Page number is out of range")
 	}
 
 	// If no actors found, return a NotFoundError
@@ -243,7 +243,7 @@ func (r *ActorRepository) GetMoviesByActorID(actorID int64, limit, offset int) (
 	}
 
 	if total < offset {
-		return []models.Movie{}, total, customerrors.Validationf("Page number is out of range")
+		return []models.Movie{}, total, customerrors.NotFoundf("Page number is out of range")
 	}
 
 	rows, err := r.db.Query(`
