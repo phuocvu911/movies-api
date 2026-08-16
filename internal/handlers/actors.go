@@ -46,15 +46,21 @@ func (h *ActorHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	// Check for optional name query parameter
 	name := r.URL.Query().Get("name")
 
-	var actors []models.Actor
-	var err error
+	//take the pagination parameters from the query string
+	page, size, err := pagination(r)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+
+	var actors models.Page[models.Actor]
 
 	if name != "" {
 		// Filter by name (partially, case-insensitive)
-		actors, err = h.service.GetByName(name)
+		actors, err = h.service.GetByName(name, page, size)
 	} else {
 		// Return all actors
-		actors, err = h.service.GetAll()
+		actors, err = h.service.GetAll(page, size)
 	}
 
 	if err != nil {

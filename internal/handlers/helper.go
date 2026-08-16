@@ -69,3 +69,27 @@ func forceParam(r *http.Request) (bool, error) {
 	}
 	return force, nil
 }
+
+const (
+	defaultPageSize = 10
+	maxPageSize     = 100
+)
+
+// pagination parses the optional page and size query parameters.
+func pagination(r *http.Request) (page, size int, err error) {
+	page, size = 0, defaultPageSize
+	q := r.URL.Query()
+	if raw := q.Get("page"); raw != "" {
+		page, err = strconv.Atoi(raw)
+		if err != nil || page < 0 {
+			return 0, 0, customerrors.Validationf("invalid page '%s': must be a non-negative integer", raw)
+		}
+	}
+	if raw := q.Get("size"); raw != "" {
+		size, err = strconv.Atoi(raw)
+		if err != nil || size < 1 || size > maxPageSize {
+			return 0, 0, customerrors.Validationf("invalid size '%s': must be an integer between 1 and %d", raw, maxPageSize)
+		}
+	}
+	return page, size, nil
+}
