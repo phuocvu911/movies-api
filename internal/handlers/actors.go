@@ -144,7 +144,13 @@ func (h *ActorHandler) Movies(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	movies, err := h.service.Movies(id)
+	page, size, err := pagination(r)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+
+	movies, err := h.service.Movies(id, page, size)
 	if err != nil {
 		respondError(w, err)
 		return
