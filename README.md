@@ -25,7 +25,36 @@ go run main.go
 
 ## Extras
 ### Pagination
-...
+
+The API server supports pagination for endpoints that return lists of resources. Use the optional `page` and `size` query parameters to control the results. It also includes the basic information about the pagination in the response, such as the current page, size, total pages, and total items.
+
+**Parameters:**
+- `page`: (optional, default: 0) - Zero-indexed page number. Must be a non-negative integer.
+- `size`: (optional, default: 10) - Number of items per page. Must be between 1 and 100 (max: 100).
+
+**Endpoints supporting pagination:**
+- All endpoints that return multiple resources, such as:
+  - `GET /api/movies`
+  - `GET /api/actors`
+  - `GET /api/genres`
+  - `GET /api/genres/{id}/movies`
+
+**Usage:**
+```bash
+# Get first page with default size (10 items)
+curl "http://localhost:8080/api/movies?page=0"
+
+# Get specific page with custom size
+curl "http://localhost:8080/api/movies?page=1&size=20"
+
+# Get third page with 5 items per page
+curl "http://localhost:8080/api/actors?page=2&size=5"
+```
+
+**Error Handling:**
+- Invalid page: Returns `400 Bad Request` with message "invalid page '...' : must be a non-negative integer"
+- Page out of range: Returns `404 Not Found` with message "page is out of range"
+- Invalid size: Returns `400 Bad Request` with message "invalid size '...' : must be an integer between 1 and 100"
 
 ### Basic Search
 
