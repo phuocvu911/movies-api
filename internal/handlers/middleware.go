@@ -65,7 +65,7 @@ func getVisitor(ip string) *rate.Limiter {
 
 	v, exists := visitors[ip]
 	if !exists {
-		limiter := rate.NewLimiter(100, 150) // 100 req/sec, burst of 150
+		limiter := rate.NewLimiter(100, 150) // 100 req/sec, burst of 150, you can change these to lower values to see the rate limiting in action
 		visitors[ip] = &visitor{limiter, time.Now()}
 		return limiter
 	}
