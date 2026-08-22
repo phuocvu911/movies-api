@@ -21,3 +21,7 @@ func (s *MovieService) GetAll() ([]models.Movie, error) {
 func (s *MovieService) Search(title string) ([]models.Movie, error) {
 	return s.repo.Search(title)
 }
+
+func (s *MovieService) Create(input models.MovieRequest) (models.Movie, error) {
+	return s.repo.Create(input)
+}

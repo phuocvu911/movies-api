@@ -46,3 +46,11 @@ type Page[T any] struct {
 	Results    []T      `json:"results"`
 	Pagination PageInfo `json:"pagination"`
 }
+
+type MovieRequest struct {
+	Title    string  `json:"title" validate:"required"`
+	Year     int     `json:"release_year" validate:"required,min=1888,max=2030"` //first movie was made in 1888, and we don't want to allow future movies beyond 2030
+	Duration int     `json:"duration" validate:"required,gt=1"`
+	GenreIDs []int64 `json:"genre_ids" validate:"omitempty,dive,gt=0"`
+	ActorIDs []int64 `json:"actor_ids" validate:"omitempty,dive,gt=0"`
+}
