@@ -12,3 +12,10 @@ type MovieRequest struct {
 	Year     int    `json:"release_year"`
 	Duration int    `json:"duration"`
 }
+
+type MoviePatch struct {
+	ID       int64
+	Title    *string `json:"title"`
+	Year     *int    `json:"release_year"`
+	Duration *int    `json:"duration"`
+}
