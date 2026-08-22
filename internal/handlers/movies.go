@@ -38,3 +38,7 @@ func (h *MovieHandler) Search(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, movies)
 }
+
+func (h *MovieHandler) Create(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query().P
+}

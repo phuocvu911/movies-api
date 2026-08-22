@@ -4,7 +4,7 @@ go 1.26.3
 
 require (
 	github.com/go-playground/validator/v10 v10.30.3
-	github.com/mattn/go-sqlite3 v1.14.48
+	github.com/mattn/go-sqlite3 v1.14.50
 )
 
 require (

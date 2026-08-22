@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"errors"
 	"movies-api/internal/customerrors"
 	"movies-api/internal/models"
 )
@@ -57,4 +58,32 @@ func (r *MovieRepository) Search(title string) ([]models.Movie, error) {
 		return nil, customerrors.NotFoundf("No movie found for title containing '%s'", title)
 	}
 	return movies, nil
+}
+
+func (r *MovieRepository) Create(title string, releaseYear, duration int) (models.Movie, error) {
+	res, err := r.db.Exec("INSERT INTO movies (title, release_year, duration) VALUES (?, ?, ?)", title, releaseYear, duration)
+	if err != nil {
+		return models.Movie{}, err
+	}
+
+	movieID, err := res.LastInsertId()
+	if err != nil {
+		return models.Movie{}, err
+	}
+
+	return models.Movie{
+		ID:       movieID,
+		Title:    title,
+		Year:     releaseYear,
+		Duration: duration,
+	}, nil
+}
+
+func (r *MovieRepository) GetByID(id int64) (models.Movie, error) {
+	var movie models.Movie
+	err := r.db.QueryRow("SELECT id, title, release_year, duration FROM movies WHERE id = ?", id).Scan(&movie.ID, &movie.Title, &movie.Year, &movie.Duration)
+	if errors.Is(err, sql.ErrNoRows) {
+		return models.Movie{}, customerrors.NotFoundf("Movie with id %d not found", id)
+	}
+	return movie, err
 }

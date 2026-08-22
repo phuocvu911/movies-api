@@ -6,3 +6,9 @@ type Movie struct {
 	Year     int    `json:"release_year"`
 	Duration int    `json:"duration"`
 }
+
+type MovieRequest struct {
+	Title    string `json:"title" validate:"required"`
+	Year     int    `json:"release_year"`
+	Duration int    `json:"duration"`
+}
