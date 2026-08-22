@@ -40,5 +40,5 @@ func (h *MovieHandler) Search(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *MovieHandler) Create(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query().P
+	
 }
