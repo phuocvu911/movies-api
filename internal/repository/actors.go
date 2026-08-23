@@ -188,23 +188,8 @@ func (r *ActorRepository) Update(id int64, u models.ActorPatch) error {
 
 // Delete removes an actor and its associated movie relationships, with force true already specified.
 func (r *ActorRepository) Delete(id int64) error {
-	tx, err := r.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	// Delete relationships in movie_actor table
-	if _, err := tx.Exec(`DELETE FROM movie_actor WHERE actor_id = ?`, id); err != nil {
-		return err
-	}
-
-	// Delete the actor
-	if _, err := tx.Exec(`DELETE FROM actors WHERE id = ?`, id); err != nil {
-		return err
-	}
-
-	return tx.Commit()
+	_, err := r.db.Exec(`DELETE FROM actors WHERE id = ?`, id)
+	return err
 }
 
 // move this to movie repository later
