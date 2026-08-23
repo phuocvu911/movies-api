@@ -158,11 +158,12 @@ func (r *ActorRepository) Update(id int64, u models.ActorPatch) error {
 	}
 	if len(sets) > 0 {
 		args = append(args, id)
-		if result, err := tx.Exec(`UPDATE actors SET `+strings.Join(sets, ", ")+` WHERE id = ?`, args...); err != nil {
-			if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
-				return customerrors.NotFoundf("Actor with ID %d not found", id)
-			}
+		result, err := tx.Exec(`UPDATE actors SET `+strings.Join(sets, ", ")+` WHERE id = ?`, args...)
+		if err != nil {
 			return err
+		}
+		if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
+			return customerrors.NotFoundf("Actor with ID %d not found", id)
 		}
 	}
 
