@@ -25,3 +25,7 @@ func (s *MovieService) Search(title string) ([]models.Movie, error) {
 func (s *MovieService) Create(input models.MovieRequest) (models.Movie, error) {
 	return s.repo.Create(input)
 }
+
+func (s *MovieService) GetByID(id int64) (models.Movie, error) {
+	return s.repo.GetByID(id)
+}

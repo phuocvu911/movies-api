@@ -61,3 +61,18 @@ func (h *MovieHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusCreated, movie)
 }
+
+func (h *MovieHandler) GetByID(w http.ResponseWriter, r *http.Request) {
+	id, err := pathID(r)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+
+	movie, err := h.service.GetByID(id)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, movie)
+}

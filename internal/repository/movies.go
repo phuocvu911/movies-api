@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"errors"
 	"movies-api/internal/customerrors"
 	"movies-api/internal/models"
 	"strings"
@@ -108,4 +109,13 @@ func (r *MovieRepository) Create(input models.MovieRequest) (models.Movie, error
 		Year:     input.Year,
 		Duration: input.Duration,
 	}, nil
+}
+
+func (r *MovieRepository) GetByID(id int64) (models.Movie, error) {
+	var movie models.Movie
+	err := r.db.QueryRow("SELECT id, title, release_year, duration FROM movies WHERE id = ?", id).Scan(&movie.ID, &movie.Title, &movie.Year, &movie.Duration)
+	if errors.Is(err, sql.ErrNoRows) {
+		return models.Movie{}, customerrors.NotFoundf("Movie with ID %d not found", id)
+	}
+	return movie, err
 }
