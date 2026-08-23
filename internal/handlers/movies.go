@@ -103,3 +103,25 @@ func (h *MovieHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, movie)
 }
+
+func (h *MovieHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	id, err := pathID(r)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+
+	//get the force query parameter
+	force, err := forceParam(r)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+
+	err = h.service.Delete(id, force)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

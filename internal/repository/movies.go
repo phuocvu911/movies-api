@@ -238,3 +238,20 @@ func (r *MovieRepository) GetByIDForPatch(id int64) (models.MoviePatchRequest, e
 
 	return movie, nil
 }
+
+func (r *MovieRepository) GenreCount(movieID int64) (int, error) {
+	var count int
+	err := r.db.QueryRow(`SELECT COUNT(*) FROM movie_genre WHERE movie_id = ?`, movieID).Scan(&count)
+	return count, err
+}
+
+func (r *MovieRepository) ActorCount(movieID int64) (int, error) {
+	var count int
+	err := r.db.QueryRow(`SELECT COUNT(*) FROM movie_actor WHERE movie_id = ?`, movieID).Scan(&count)
+	return count, err
+}
+
+func (r *MovieRepository) Delete(id int64) error {
+	_, err := r.db.Exec(`DELETE FROM movies WHERE id = ?`, id)
+	return err
+}

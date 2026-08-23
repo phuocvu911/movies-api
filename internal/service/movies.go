@@ -1,6 +1,7 @@
 package service
 
 import (
+	"movies-api/internal/customerrors"
 	"movies-api/internal/models"
 	"movies-api/internal/repository"
 )
@@ -36,4 +37,25 @@ func (s *MovieService) Update(id int64, u models.MoviePatchRequest) (models.Movi
 		return models.MoviePatchRequest{}, err
 	}
 	return s.repo.GetByIDForPatch(id)
+}
+
+func (s *MovieService) Delete(id int64, force bool) error {
+	movie, err := s.repo.GetByID(id)
+	if err != nil {
+		return err
+	}
+	genreCount, err := s.repo.GenreCount(id)
+	if err != nil {
+		return err
+	}
+	actorCount, err := s.repo.ActorCount(id)
+	if err != nil {
+		return err
+	}
+
+	if !force && (genreCount > 0 || actorCount > 0) {
+		return customerrors.Validationf("Unable to delete the movie '%s' as it is associated with %d genres and %d actors", movie.Title, genreCount, actorCount)
+	}
+
+	return s.repo.Delete(id)
 }
