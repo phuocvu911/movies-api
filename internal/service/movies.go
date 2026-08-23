@@ -29,3 +29,11 @@ func (s *MovieService) Create(input models.MovieRequest) (models.Movie, error) {
 func (s *MovieService) GetByID(id int64) (models.Movie, error) {
 	return s.repo.GetByID(id)
 }
+
+func (s *MovieService) Update(id int64, u models.MoviePatchRequest) (models.MoviePatchRequest, error) {
+	err := s.repo.Update(id, u)
+	if err != nil {
+		return models.MoviePatchRequest{}, err
+	}
+	return s.repo.GetByIDForPatch(id)
+}

@@ -54,3 +54,12 @@ type MovieRequest struct {
 	GenreIDs []int64 `json:"genre_ids" validate:"omitempty,dive,gt=0"`
 	ActorIDs []int64 `json:"actor_ids" validate:"omitempty,dive,gt=0"`
 }
+
+type MoviePatchRequest struct {
+	Id       int64    `json:"id"`
+	Title    *string  `json:"title"`
+	Year     *int     `json:"release_year" validate:"omitempty,min=1888,max=2030"`
+	Duration *int     `json:"duration"`
+	GenreIDs *[]int64 `json:"genre_ids" validate:"omitempty,dive,gt=0"`
+	ActorIDs *[]int64 `json:"actor_ids" validate:"omitempty,dive,gt=0"`
+}

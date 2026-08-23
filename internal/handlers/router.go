@@ -30,7 +30,7 @@ func NewRouter(genres *GenreHandler, movies *MovieHandler, actors *ActorHandler)
 	mux.HandleFunc("GET /api/movies/search", movies.Search)
 	mux.HandleFunc("POST /api/movies", movies.Create)
 	mux.HandleFunc("GET /api/movies/{id}", movies.GetByID)
-	// mux.HandleFunc("PATCH /api/movies/{id}", movies.Update)
+	mux.HandleFunc("PATCH /api/movies/{id}", movies.Update)
 	// mux.HandleFunc("DELETE /api/movies/{id}", movies.Delete)
 
 	// wrap the mux with middleware

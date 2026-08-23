@@ -76,3 +76,30 @@ func (h *MovieHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, movie)
 }
+
+func (h *MovieHandler) Update(w http.ResponseWriter, r *http.Request) {
+	//get movie id from the path
+	id, err := pathID(r)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+	var moviePatchRequest models.MoviePatchRequest
+	if err := decodeJSON(r, &moviePatchRequest); err != nil {
+		respondError(w, err)
+		return
+	}
+
+	//validate the request body
+	if err := validation.V.Struct(moviePatchRequest); err != nil {
+		respondError(w, customerrors.Validationf("validation err: %v", err))
+		return
+	}
+	//call the service to update the movie
+	movie, err := h.service.Update(id, moviePatchRequest)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, movie)
+}

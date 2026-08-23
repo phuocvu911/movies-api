@@ -17,7 +17,7 @@ func NewMovieRepository(db *sql.DB) *MovieRepository {
 }
 
 func (r *MovieRepository) GetAll() ([]models.Movie, error) {
-	rows, err := r.db.Query("SELECT id, title, release_year, duration FROM movies")
+	rows, err := r.db.Query(`SELECT id, title, release_year, duration FROM movies`)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +40,7 @@ func (r *MovieRepository) GetAll() ([]models.Movie, error) {
 
 // Search searches for movies by title (partial match, case-insensitive).
 func (r *MovieRepository) Search(title string) ([]models.Movie, error) {
-	rows, err := r.db.Query("SELECT id, title, release_year, duration FROM movies WHERE LOWER(title) LIKE ?", "%"+title+"%")
+	rows, err := r.db.Query(`SELECT id, title, release_year, duration FROM movies WHERE LOWER(title) LIKE ?`, "%"+title+"%")
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func (r *MovieRepository) Create(input models.MovieRequest) (models.Movie, error
 	}
 	defer tx.Rollback()
 
-	result, err := tx.Exec("INSERT INTO movies (title, release_year, duration) VALUES (?, ?, ?)", input.Title, input.Year, input.Duration)
+	result, err := tx.Exec(`INSERT INTO movies (title, release_year, duration) VALUES (?, ?, ?)`, input.Title, input.Year, input.Duration)
 	if err != nil {
 		return models.Movie{}, err
 	}
@@ -80,7 +80,7 @@ func (r *MovieRepository) Create(input models.MovieRequest) (models.Movie, error
 
 	//add relationships
 	for _, genreID := range dedupe(input.GenreIDs) {
-		_, err := tx.Exec("INSERT INTO movie_genre (movie_id, genre_id) VALUES (?, ?)", id, genreID)
+		_, err := tx.Exec(`INSERT INTO movie_genre (movie_id, genre_id) VALUES (?, ?)`, id, genreID)
 		if err != nil {
 			if strings.Contains(err.Error(), "FOREIGN KEY constraint failed") {
 				return models.Movie{}, customerrors.NotFoundf("Genre with ID %d not found", genreID)
@@ -90,7 +90,7 @@ func (r *MovieRepository) Create(input models.MovieRequest) (models.Movie, error
 	}
 
 	for _, actorID := range dedupe(input.ActorIDs) {
-		_, err := tx.Exec("INSERT INTO movie_actor (movie_id, actor_id) VALUES (?, ?)", id, actorID)
+		_, err := tx.Exec(`INSERT INTO movie_actor (movie_id, actor_id) VALUES (?, ?)`, id, actorID)
 		if err != nil {
 			if strings.Contains(err.Error(), "FOREIGN KEY constraint failed") {
 				return models.Movie{}, customerrors.NotFoundf("Actor with ID %d not found", actorID)
@@ -113,9 +113,128 @@ func (r *MovieRepository) Create(input models.MovieRequest) (models.Movie, error
 
 func (r *MovieRepository) GetByID(id int64) (models.Movie, error) {
 	var movie models.Movie
-	err := r.db.QueryRow("SELECT id, title, release_year, duration FROM movies WHERE id = ?", id).Scan(&movie.ID, &movie.Title, &movie.Year, &movie.Duration)
+	err := r.db.QueryRow(`SELECT id, title, release_year, duration FROM movies WHERE id = ?`, id).Scan(&movie.ID, &movie.Title, &movie.Year, &movie.Duration)
 	if errors.Is(err, sql.ErrNoRows) {
 		return models.Movie{}, customerrors.NotFoundf("Movie with ID %d not found", id)
 	}
 	return movie, err
+}
+
+func (r *MovieRepository) Update(id int64, p models.MoviePatchRequest) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	//update movies table
+	var sets []string
+	var args []any
+
+	if p.Title != nil {
+		sets = append(sets, "title = ?")
+		args = append(args, *p.Title)
+	}
+
+	if p.Year != nil {
+		sets = append(sets, "release_year = ?")
+		args = append(args, *p.Year)
+	}
+
+	if p.Duration != nil {
+		sets = append(sets, "duration = ?")
+		args = append(args, *p.Duration)
+	}
+
+	if len(sets) > 0 {
+		args = append(args, id)
+		result, err := tx.Exec(`UPDATE movies SET `+strings.Join(sets, ", ")+` WHERE id = ?`, args...)
+		if err != nil {
+			return err
+		}
+		if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
+			return customerrors.NotFoundf("Movie with ID %d not found", id)
+		}
+	}
+
+	//update relationships
+	if p.GenreIDs != nil {
+		//delete all existing genres
+		_, err := tx.Exec(`DELETE FROM movie_genre WHERE movie_id = ?`, id)
+		if err != nil {
+			return err
+		}
+		//insert new genres
+		for _, genreID := range dedupe(*p.GenreIDs) {
+			_, err := tx.Exec(`INSERT INTO movie_genre (movie_id, genre_id) VALUES (?, ?)`, id, genreID)
+			if err != nil {
+				if strings.Contains(err.Error(), "FOREIGN KEY constraint failed") {
+					return customerrors.NotFoundf("Genre with ID %d not found", genreID)
+				}
+				return err
+			}
+		}
+	}
+
+	if p.ActorIDs != nil {
+		//delete all existing actors
+		_, err := tx.Exec(`DELETE FROM movie_actor WHERE movie_id = ?`, id)
+		if err != nil {
+			return err
+		}
+		//insert new actors
+		for _, actorID := range dedupe(*p.ActorIDs) {
+			_, err := tx.Exec(`INSERT INTO movie_actor (movie_id, actor_id) VALUES (?, ?)`, id, actorID)
+			if err != nil {
+				if strings.Contains(err.Error(), "FOREIGN KEY constraint failed") {
+					return customerrors.NotFoundf("Actor with ID %d not found", actorID)
+				}
+				return err
+			}
+		}
+	}
+
+	return tx.Commit()
+}
+
+func (r *MovieRepository) GetByIDForPatch(id int64) (models.MoviePatchRequest, error) {
+	var movie models.MoviePatchRequest
+	err := r.db.QueryRow(`SELECT id, title, release_year, duration FROM movies WHERE id = ?`, id).Scan(&movie.Id, &movie.Title, &movie.Year, &movie.Duration)
+	rows, err := r.db.Query(`SELECT genre_id FROM movie_genre WHERE movie_id = ?`, id)
+	if err != nil {
+		return models.MoviePatchRequest{}, err
+	}
+	defer rows.Close()
+
+	var genreIDs []int64
+	for rows.Next() {
+		var genreID int64
+		if err := rows.Scan(&genreID); err != nil {
+			return models.MoviePatchRequest{}, err
+		}
+		genreIDs = append(genreIDs, genreID)
+	}
+	if len(genreIDs) > 0 {
+		movie.GenreIDs = &genreIDs
+	}
+
+	rows, err = r.db.Query(`SELECT actor_id FROM movie_actor WHERE movie_id = ?`, id)
+	if err != nil {
+		return models.MoviePatchRequest{}, err
+	}
+	defer rows.Close()
+
+	var actorIDs []int64
+	for rows.Next() {
+		var actorID int64
+		if err := rows.Scan(&actorID); err != nil {
+			return models.MoviePatchRequest{}, err
+		}
+		actorIDs = append(actorIDs, actorID)
+	}
+	if len(actorIDs) > 0 {
+		movie.ActorIDs = &actorIDs
+	}
+
+	return movie, nil
 }
