@@ -138,3 +138,19 @@ func (h *MovieHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+//Actors handles GET /api/movies/{id}/actors
+func (h *MovieHandler) Actors(w http.ResponseWriter, r *http.Request) {
+	id, err := pathID(r)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+
+	actors, err := h.service.Actors(id)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, actors)
+}

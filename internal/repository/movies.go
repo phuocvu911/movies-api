@@ -282,3 +282,32 @@ func (r *MovieRepository) Delete(id int64) error {
 	_, err := r.db.Exec(`DELETE FROM movies WHERE id = ?`, id)
 	return err
 }
+
+func (r *MovieRepository) Actors(movieID int64) ([]models.Actor, error) {
+	rows, err := r.db.Query(`
+		SELECT
+			actors.id,
+			actors.name,
+			actors.birth_date
+		FROM movie_actor
+		JOIN actors ON movie_actor.actor_id = actors.id
+		WHERE movie_actor.movie_id = ?
+		ORDER BY actor_id`, movieID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var actors []models.Actor
+	for rows.Next() {
+		var actor models.Actor
+		if err := rows.Scan(&actor.ID, &actor.Name, &actor.BirthDate); err != nil {
+			return nil, err
+		}
+		actors = append(actors, actor)
+	}
+	if len(actors) == 0 {
+		return nil, customerrors.NotFoundf("No actors found for movie with ID %d", movieID)
+	}
+	return actors, nil
+}

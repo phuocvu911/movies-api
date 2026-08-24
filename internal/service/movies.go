@@ -59,3 +59,7 @@ func (s *MovieService) Delete(id int64, force bool) error {
 
 	return s.repo.Delete(id)
 }
+
+func (s *MovieService) Actors(id int64) ([]models.Actor, error) {
+	return s.repo.Actors(id)
+}
