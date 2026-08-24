@@ -5,6 +5,7 @@ go 1.26.3
 require (
 	github.com/go-playground/validator/v10 v10.30.3
 	github.com/mattn/go-sqlite3 v1.14.48
+	golang.org/x/time v0.15.0
 )
 
 require (

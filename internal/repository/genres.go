@@ -135,23 +135,6 @@ func (r *GenreRepository) MovieCount(genreID int64) (int, error) {
 
 // Delete removes a genre by its ID.
 func (r *GenreRepository) Delete(id int64) error {
-	tx, err := r.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	//delete the associations in movie_genre table first
-	_, err = tx.Exec("DELETE FROM movie_genre WHERE genre_id = ?", id)
-	if err != nil {
-		return err
-	}
-
-	//delete the genre from genres table
-	_, err = tx.Exec("DELETE FROM genres WHERE id = ?", id)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
+	_, err := r.db.Exec(`DELETE FROM genres WHERE id = ?`, id)
+	return err
 }
