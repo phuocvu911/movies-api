@@ -90,6 +90,12 @@ func (r *MovieRepository) GetByID(id int64) (models.Movie, error) {
 }
 
 func (r *MovieRepository) Update(id int64, u models.MoviePatch) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Commit()
+
 	var sets []string
 	var args []any
 
