@@ -127,12 +127,41 @@ func (r *MovieRepository) Update(id int64, u models.MoviePatch) error {
 	return nil
 }
 
-func (r *MovieRepository) Delete(id int64) error {
-	result, err := r.db.Exec("DELETE FROM movies WHERE id = ?", id)
+func (r *MovieRepository) Delete(id int64, force bool) error {
+	var genreCount int
+	err := r.db.QueryRow("SELECT COUNT(*) FROM movie_genre WHERE movie_id = ?", id).Scan(&genreCount)
 	if err != nil {
 		return err
 	}
 
+	var actorCount int
+	err = r.db.QueryRow("SELECT COUNT(*) FROM movie_actor WHERE movie_id = ?", id).Scan(&actorCount)
+	if err != nil {
+		return err
+	}
+
+	if genreCount > 0 || actorCount > 0 {
+		if !force {
+			return customerrors.Conflictf("Movie with id %d has associated genres or actors", id)
+		}
+	}
+
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.Exec("DELETE FROM movie_genre WHERE movie_id = ?", id); err != nil {
+		return err
+	}
+	if _, err := tx.Exec("DELETE FROM movie_actor WHERE movie_id = ?", id); err != nil {
+		return err
+	}
+	result, err := tx.Exec("DELETE FROM movies WHERE id = ?", id)
+	if err != nil {
+		return err
+	}
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return err
@@ -140,8 +169,7 @@ func (r *MovieRepository) Delete(id int64) error {
 	if rowsAffected == 0 {
 		return customerrors.NotFoundf("Movie with id %d not found", id)
 	}
-
-	return nil
+	return tx.Commit()
 }
 
 func (r *MovieRepository) GetByGenreID(genreID int64) ([]models.Movie, error) {
@@ -221,5 +249,3 @@ func (r *MovieRepository) GetByActorID(actorID int64) ([]models.Movie, error) {
 	}
 	return movies, nil
 }
-
-func (r *MovieRepository) GetActorsByMovieID(id int) []models.Actor
