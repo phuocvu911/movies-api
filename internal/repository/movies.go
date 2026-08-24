@@ -94,7 +94,7 @@ func (r *MovieRepository) Update(id int64, u models.MoviePatch) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Commit()
+	defer tx.Rollback()
 
 	var sets []string
 	var args []any
@@ -112,25 +112,51 @@ func (r *MovieRepository) Update(id int64, u models.MoviePatch) error {
 		args = append(args, *u.Duration)
 	}
 
-	if len(sets) == 0 {
+	if len(sets) == 0 && u.GenreIDs == nil && u.ActorIDs == nil {
 		return customerrors.Validationf("No fields to update")
 	}
 
-	args = append(args, id)
-	result, err := r.db.Exec("UPDATE movies SET "+strings.Join(sets, ", ")+" WHERE id = ?", args...)
-	if err != nil {
-		return err
+	if len(sets) > 0 {
+		args = append(args, id)
+		result, err := tx.Exec("UPDATE movies SET "+strings.Join(sets, ", ")+" WHERE id = ?", args...)
+		if err != nil {
+			return err
+		}
+
+		rowsAffected, err := result.RowsAffected()
+		if err != nil {
+			return err
+		}
+		if rowsAffected == 0 {
+			return customerrors.NotFoundf("Movie with id %d not found", id)
+		}
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if rowsAffected == 0 {
-		return customerrors.NotFoundf("Movie with id %d not found", id)
+	if u.GenreIDs != nil {
+		_, err := tx.Exec("DELETE FROM movie_genre WHERE movie_id = ?", id)
+		if err != nil {
+			return err
+		}
+
+		for _, genreID := range *u.GenreIDs {
+			if _, err := tx.Exec("INSERT INTO movie_genre (movie_id, genre_id) VALUES (?,?)", id, genreID); err != nil {
+				return err
+			}
+		}
 	}
 
-	return nil
+	if u.ActorIDs != nil {
+		if _, err := tx.Exec("DELETE FROM movie_actor WHERE movie_id = ?", id); err != nil {
+			return err
+		}
+
+		for _, actorID := range *u.ActorIDs {
+			if _, err := tx.Exec("INSERT INTO movie_actor (movie_id, actor_id) VALUES (?,?)", id, actorID); err != nil {
+				return err
+			}
+		}
+	}
+	return tx.Commit()
 }
 
 func (r *MovieRepository) Delete(id int64, force bool) error {
