@@ -16,8 +16,35 @@ func NewMovieRepository(db *sql.DB) *MovieRepository {
 	return &MovieRepository{db: db}
 }
 
-func (r *MovieRepository) GetAll() ([]models.Movie, error) {
-	rows, err := r.db.Query(`SELECT id, title, release_year, duration FROM movies`)
+func (r *MovieRepository) GetAll(filter models.MovieFilter) ([]models.Movie, error) {
+	var command string
+	var arg int64
+
+	if filter.ActorID != nil {
+		command = `
+			SELECT id, title, release_year, duration 
+			FROM movies 
+			INNER JOIN movie_actor ON movies.id = movie_actor.movie_id 
+			WHERE movie_actor.actor_id = ?`
+		arg = *filter.ActorID
+	} else if filter.GenreID != nil {
+		command = `
+			SELECT id, title, release_year, duration 
+			FROM movies 
+			INNER JOIN movie_genre ON movies.id = movie_genre.movie_id 
+			WHERE movie_genre.genre_id = ?`
+		arg = *filter.GenreID
+	} else if filter.Year != nil {
+		command = `
+			SELECT id, title, release_year, duration 
+			FROM movies 
+			WHERE release_year = ?`
+		arg = *filter.Year
+	} else {
+		command = `SELECT id, title, release_year, duration FROM movies`
+	}
+
+	rows, err := r.db.Query(command, arg)
 	if err != nil {
 		return nil, err
 	}

@@ -17,7 +17,20 @@ func NewMovieHandler(s *service.MovieService) *MovieHandler {
 }
 
 func (h *MovieHandler) GetAll(w http.ResponseWriter, r *http.Request) {
-	movies, err := h.service.GetAll()
+	var filter models.MovieFilter
+
+	//take the filter params from the query string
+	if raw, err := parseInt64p(r, "genre"); err == nil {
+		filter.GenreID = raw
+	}
+	if raw, err := parseInt64p(r, "year"); err == nil {
+		filter.Year = raw
+	}
+	if raw, err := parseInt64p(r, "actor"); err == nil {
+		filter.ActorID = raw
+	}
+
+	movies, err := h.service.GetAll(filter)
 	if err != nil {
 		respondError(w, err)
 		return

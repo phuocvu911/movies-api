@@ -23,9 +23,8 @@ func main() {
 		log.Fatalf("migration failed: %v", err)
 	}
 
-	//seeding data()
+	//seeding data
 	if err := database.Seed(db); err != nil {
-
 		log.Fatalf("database seeding failed: %v", err)
 	}
 

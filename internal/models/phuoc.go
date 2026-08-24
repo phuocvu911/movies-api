@@ -63,3 +63,9 @@ type MoviePatchRequest struct {
 	GenreIDs *[]int64 `json:"genre_ids" validate:"omitempty,dive,gt=0"`
 	ActorIDs *[]int64 `json:"actor_ids" validate:"omitempty,dive,gt=0"`
 }
+
+type MovieFilter struct {
+	GenreID *int64
+	Year    *int64
+	ActorID *int64
+}

@@ -93,3 +93,16 @@ func pagination(r *http.Request) (page, size int, err error) {
 	}
 	return page, size, nil
 }
+
+// parseInt64p parses the optional int64 query parameter, used in movies filter.
+func parseInt64p(r *http.Request, key string) (*int64, error) {
+	raw := r.URL.Query().Get(key)
+	if raw == "" {
+		return nil, nil
+	}
+	val, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		return nil, customerrors.Validationf("invalid %s '%s': must be an integer", key, raw)
+	}
+	return &val, nil
+}
