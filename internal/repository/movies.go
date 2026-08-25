@@ -58,6 +58,9 @@ func (r *MovieRepository) GetAll(filter models.MovieFilter) ([]models.Movie, err
 		}
 		movies = append(movies, movie)
 	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
 	// If no movies found, return a NotFoundError
 	if len(movies) == 0 {
 		return nil, customerrors.NotFoundf("No movie found")
@@ -80,6 +83,9 @@ func (r *MovieRepository) Search(title string) ([]models.Movie, error) {
 			return nil, err
 		}
 		movies = append(movies, movie)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
 	}
 	// If no movies found, return a NotFoundError
 	if len(movies) == 0 {
@@ -241,6 +247,9 @@ func (r *MovieRepository) GetByIDForPatch(id int64) (models.MoviePatchRequest, e
 		}
 		genreIDs = append(genreIDs, genreID)
 	}
+	if err = rows.Err(); err != nil {
+		return models.MoviePatchRequest{}, err
+	}
 	if len(genreIDs) > 0 {
 		movie.GenreIDs = &genreIDs
 	}
@@ -258,6 +267,9 @@ func (r *MovieRepository) GetByIDForPatch(id int64) (models.MoviePatchRequest, e
 			return models.MoviePatchRequest{}, err
 		}
 		actorIDs = append(actorIDs, actorID)
+	}
+	if err = rows.Err(); err != nil {
+		return models.MoviePatchRequest{}, err
 	}
 	if len(actorIDs) > 0 {
 		movie.ActorIDs = &actorIDs
@@ -305,6 +317,9 @@ func (r *MovieRepository) Actors(movieID int64) ([]models.Actor, error) {
 			return nil, err
 		}
 		actors = append(actors, actor)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
 	}
 	if len(actors) == 0 {
 		return nil, customerrors.NotFoundf("No actors found for movie with ID %d", movieID)

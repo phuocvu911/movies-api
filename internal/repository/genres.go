@@ -76,6 +76,9 @@ func (r *GenreRepository) GetAll(limit, offset int) ([]models.Genre, int, error)
 		}
 		genres = append(genres, genre)
 	}
+	if err = rows.Err(); err != nil {
+		return nil, 0, err
+	}
 
 	return genres, total, nil
 }
@@ -126,6 +129,9 @@ func (r *GenreRepository) GetMoviesByGenreID(genreID int64, limit, offset int) (
 			return nil, 0, err
 		}
 		movies = append(movies, movie)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, 0, err
 	}
 
 	return movies, total, nil

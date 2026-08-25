@@ -61,6 +61,9 @@ func (r *ActorRepository) GetAll(limit, offset int) ([]models.Actor, int, error)
 		}
 		actors = append(actors, actor)
 	}
+	if err = rows.Err(); err != nil {
+		return nil, 0, err
+	}
 	// If no actors found, return a NotFoundError
 	if len(actors) == 0 {
 		return nil, 0, customerrors.NotFoundf("No actor found")
@@ -97,6 +100,9 @@ func (r *ActorRepository) GetByName(name string, limit, offset int) ([]models.Ac
 			return nil, 0, err
 		}
 		actors = append(actors, actor)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, 0, err
 	}
 
 	return actors, total, nil
@@ -139,6 +145,9 @@ func (r *ActorRepository) GetByIDForPatch(id int64) (models.ActorPatch, error) {
 			return models.ActorPatch{}, err
 		}
 		movieIDs = append(movieIDs, movieID)
+	}
+	if err = rows.Err(); err != nil {
+		return models.ActorPatch{}, err
 	}
 	if len(movieIDs) > 0 {
 		actor.MovieIDs = &movieIDs
@@ -266,6 +275,9 @@ func (r *ActorRepository) GetMoviesByActorID(actorID int64, limit, offset int) (
 			return []models.Movie{}, 0, err
 		}
 		movies = append(movies, movie)
+	}
+	if err = rows.Err(); err != nil {
+		return []models.Movie{}, 0, err
 	}
 
 	return movies, total, nil
