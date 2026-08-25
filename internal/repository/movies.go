@@ -16,12 +16,15 @@ func NewMovieRepository(db *sql.DB) *MovieRepository {
 	return &MovieRepository{db: db}
 }
 
+const (
+	selectStatement   = `SELECT id, title, release_year, duration FROM movies`
+	countStatement    = `SELECT COUNT(*) FROM movies`
+	limitOffsetClause = ` ORDER BY movies.id LIMIT ? OFFSET ?`
+)
+
 func (r *MovieRepository) GetAll(filter models.MovieFilter, limit, offset int) ([]models.Movie, int, error) {
 	var command string
 	var args []any
-	selectStatement := `SELECT id, title, release_year, duration FROM movies`
-	countStatement := `SELECT count(*) FROM movies`
-	limitOffsetClause := ` ORDER BY movies.id LIMIT ? OFFSET ?`
 
 	//build the command and arg for filter, otherwhise command stays empty string to get all the movies
 	if filter.ActorID != nil {
@@ -80,10 +83,26 @@ func (r *MovieRepository) GetAll(filter models.MovieFilter, limit, offset int) (
 }
 
 // Search searches for movies by title (partial match, case-insensitive).
-func (r *MovieRepository) Search(title string) ([]models.Movie, error) {
-	rows, err := r.db.Query(`SELECT id, title, release_year, duration FROM movies WHERE LOWER(title) LIKE ?`, "%"+title+"%")
+func (r *MovieRepository) Search(title string, limit, offset int) ([]models.Movie, int, error) {
+	command := ` WHERE LOWER(title) LIKE ?`
+
+	var total int
+	if err := r.db.QueryRow(countStatement+command, "%"+title+"%").Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	// If no movies found, return a NotFoundError
+	if total == 0 {
+		return nil, total, customerrors.NotFoundf("No movie found for title containing '%s'", title)
+	}
+
+	if total < offset {
+		return nil, total, customerrors.NotFoundf("Page number is out of range")
+	}
+
+	rows, err := r.db.Query(selectStatement+command+limitOffsetClause, "%"+title+"%", limit, offset)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -91,18 +110,14 @@ func (r *MovieRepository) Search(title string) ([]models.Movie, error) {
 	for rows.Next() {
 		var movie models.Movie
 		if err := rows.Scan(&movie.ID, &movie.Title, &movie.Year, &movie.Duration); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		movies = append(movies, movie)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	// If no movies found, return a NotFoundError
-	if len(movies) == 0 {
-		return nil, customerrors.NotFoundf("No movie found for title containing '%s'", title)
-	}
-	return movies, nil
+	return movies, total, nil
 }
 
 func (r *MovieRepository) Create(input models.MovieRequest) (models.Movie, error) {
