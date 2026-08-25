@@ -31,6 +31,9 @@ func (r *MovieRepository) GetAll() ([]models.Movie, error) {
 		}
 		movies = append(movies, movie)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	// If no movies found, return a NotFoundError
 	if len(movies) == 0 {
 		return nil, customerrors.NotFoundf("No movie found")
@@ -54,6 +57,9 @@ func (r *MovieRepository) Search(title string) ([]models.Movie, error) {
 		}
 		movies = append(movies, movie)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	// If no movies found, return a NotFoundError
 	if len(movies) == 0 {
 		return nil, customerrors.NotFoundf("No movie found for title containing '%s'", title)
@@ -61,8 +67,14 @@ func (r *MovieRepository) Search(title string) ([]models.Movie, error) {
 	return movies, nil
 }
 
-func (r *MovieRepository) Create(title string, releaseYear, duration int) (models.Movie, error) {
-	res, err := r.db.Exec("INSERT INTO movies (title, release_year, duration) VALUES (?, ?, ?)", title, releaseYear, duration)
+func (r *MovieRepository) Create(input models.MovieRequest) (models.Movie, error) {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return models.Movie{}, err
+	}
+	defer tx.Rollback()
+
+	res, err := tx.Exec("INSERT INTO movies (title, release_year, duration) VALUES (?, ?, ?)", input.Title, input.Year, input.Duration)
 	if err != nil {
 		return models.Movie{}, err
 	}
@@ -72,11 +84,32 @@ func (r *MovieRepository) Create(title string, releaseYear, duration int) (model
 		return models.Movie{}, err
 	}
 
+	for _, genreID := range dedupe(input.GenreIDs) {
+		if _, err := tx.Exec("INSERT INTO movie_genre (movie_id, genre_id) VALUES (?,?)", movieID, genreID); err != nil {
+			if strings.Contains(err.Error(), "FOREIGN KEY constraint failed") {
+				return models.Movie{}, customerrors.NotFoundf("Genre with id %d not found", genreID)
+			}
+			return models.Movie{}, err
+		}
+	}
+
+	for _, actorID := range dedupe(input.ActorIDs) {
+		if _, err := tx.Exec("INSERT INTO movie_actor (movie_id, actor_id) VALUES (?,?)", movieID, actorID); err != nil {
+			if strings.Contains(err.Error(), "FOREIGN KEY constraint failed") {
+				return models.Movie{}, customerrors.NotFoundf("Actor with id %d not found", actorID)
+			}
+			return models.Movie{}, err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return models.Movie{}, err
+	}
 	return models.Movie{
 		ID:       movieID,
-		Title:    title,
-		Year:     releaseYear,
-		Duration: duration,
+		Title:    input.Title,
+		Year:     input.Year,
+		Duration: input.Duration,
 	}, nil
 }
 
@@ -90,12 +123,6 @@ func (r *MovieRepository) GetByID(id int64) (models.Movie, error) {
 }
 
 func (r *MovieRepository) Update(id int64, u models.MoviePatch) error {
-	tx, err := r.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
 	var sets []string
 	var args []any
 
@@ -116,19 +143,26 @@ func (r *MovieRepository) Update(id int64, u models.MoviePatch) error {
 		return customerrors.Validationf("No fields to update")
 	}
 
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	var exists int
+	err = tx.QueryRow("SELECT 1 FROM movies WHERE id = ?", id).Scan(&exists)
+	if errors.Is(err, sql.ErrNoRows) {
+		return customerrors.NotFoundf("Movie with id %d not found", id)
+	}
+	if err != nil {
+		return err
+	}
+
 	if len(sets) > 0 {
 		args = append(args, id)
-		result, err := tx.Exec("UPDATE movies SET "+strings.Join(sets, ", ")+" WHERE id = ?", args...)
+		_, err := tx.Exec("UPDATE movies SET "+strings.Join(sets, ", ")+" WHERE id = ?", args...)
 		if err != nil {
 			return err
-		}
-
-		rowsAffected, err := result.RowsAffected()
-		if err != nil {
-			return err
-		}
-		if rowsAffected == 0 {
-			return customerrors.NotFoundf("Movie with id %d not found", id)
 		}
 	}
 
@@ -138,8 +172,11 @@ func (r *MovieRepository) Update(id int64, u models.MoviePatch) error {
 			return err
 		}
 
-		for _, genreID := range *u.GenreIDs {
+		for _, genreID := range dedupe(*u.GenreIDs) {
 			if _, err := tx.Exec("INSERT INTO movie_genre (movie_id, genre_id) VALUES (?,?)", id, genreID); err != nil {
+				if strings.Contains(err.Error(), "FOREIGN KEY constraint failed") {
+					return customerrors.NotFoundf("Genre with id %d not found", genreID)
+				}
 				return err
 			}
 		}
@@ -150,8 +187,11 @@ func (r *MovieRepository) Update(id int64, u models.MoviePatch) error {
 			return err
 		}
 
-		for _, actorID := range *u.ActorIDs {
+		for _, actorID := range dedupe(*u.ActorIDs) {
 			if _, err := tx.Exec("INSERT INTO movie_actor (movie_id, actor_id) VALUES (?,?)", id, actorID); err != nil {
+				if strings.Contains(err.Error(), "FOREIGN KEY constraint failed") {
+					return customerrors.NotFoundf("Actor with id %d not found", actorID)
+				}
 				return err
 			}
 		}
@@ -178,19 +218,7 @@ func (r *MovieRepository) Delete(id int64, force bool) error {
 		}
 	}
 
-	tx, err := r.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	if _, err := tx.Exec("DELETE FROM movie_genre WHERE movie_id = ?", id); err != nil {
-		return err
-	}
-	if _, err := tx.Exec("DELETE FROM movie_actor WHERE movie_id = ?", id); err != nil {
-		return err
-	}
-	result, err := tx.Exec("DELETE FROM movies WHERE id = ?", id)
+	result, err := r.db.Exec("DELETE FROM movies WHERE id = ?", id)
 	if err != nil {
 		return err
 	}
@@ -201,13 +229,13 @@ func (r *MovieRepository) Delete(id int64, force bool) error {
 	if rowsAffected == 0 {
 		return customerrors.NotFoundf("Movie with id %d not found", id)
 	}
-	return tx.Commit()
+	return nil
 }
 
 func (r *MovieRepository) GetByGenreID(genreID int64) ([]models.Movie, error) {
 	rows, err := r.db.Query("SELECT m.id, m.title, m.release_year, m.duration FROM movies m JOIN movie_genre mg ON m.id = mg.movie_id WHERE mg.genre_id = ?", genreID)
 	if err != nil {
-		return []models.Movie{}, err
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -280,4 +308,30 @@ func (r *MovieRepository) GetByActorID(actorID int64) ([]models.Movie, error) {
 		return nil, customerrors.NotFoundf("No movie found for actor ID %d", actorID)
 	}
 	return movies, nil
+}
+
+func (r *MovieRepository) GetActorsByMovieID(movieID int64) ([]models.Actor, error) {
+	rows, err := r.db.Query("SELECT a.id, a.name, a.birth_date FROM actors a JOIN movie_actor ma ON a.ID = ma.actor_id WHERE ma.movie_id = ?", movieID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var actors []models.Actor
+	for rows.Next() {
+		var actor models.Actor
+		if err := rows.Scan(&actor.ID, &actor.Name, &actor.BirthDate); err != nil {
+			return nil, err
+		}
+		actors = append(actors, actor)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(actors) == 0 {
+		return nil, customerrors.NotFoundf("No actors found for movie ID %d", movieID)
+	}
+	return actors, nil
 }
