@@ -68,6 +68,10 @@ func (s *MovieService) Delete(id int64, force bool) error {
 	return s.repo.Delete(id)
 }
 
-func (s *MovieService) Actors(id int64) ([]models.Actor, error) {
-	return s.repo.Actors(id)
+func (s *MovieService) Actors(id int64, page, size int) (models.Page[models.Actor], error) {
+	actors, total, err := s.repo.Actors(id, size, page*size)
+	if err != nil {
+		return models.Page[models.Actor]{}, err
+	}
+	return newPage(actors, page, size, total), nil
 }

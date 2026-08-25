@@ -244,8 +244,8 @@ func (r *ActorRepository) MovieCount(id int64) (int, error) {
 
 // GetMoviesByActorID returns all movies associated with an actor.
 func (r *ActorRepository) GetMoviesByActorID(actorID int64, limit, offset int) ([]models.Movie, int, error) {
-	total := 0
-	if err := r.db.QueryRow(`SELECT COUNT(*) FROM movie_actor WHERE actor_id = ?`, actorID).Scan(&total); err != nil {
+	total, err := r.MovieCount(actorID)
+	if err != nil {
 		return []models.Movie{}, 0, err
 	}
 

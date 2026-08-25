@@ -170,7 +170,14 @@ func (h *MovieHandler) Actors(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	actors, err := h.service.Actors(id)
+	//take the pagination parameters from the query string	
+	page, size, err := pagination(r)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+
+	actors, err := h.service.Actors(id, page, size)
 	if err != nil {
 		respondError(w, err)
 		return

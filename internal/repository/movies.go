@@ -321,7 +321,19 @@ func (r *MovieRepository) Delete(id int64) error {
 	return err
 }
 
-func (r *MovieRepository) Actors(movieID int64) ([]models.Actor, error) {
+func (r *MovieRepository) Actors(movieID int64, limit, offset int) ([]models.Actor, int, error) {
+	total, err := r.ActorCount(movieID)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if total == 0 {
+		return nil, 0, customerrors.NotFoundf("No actors found for movie with ID %d", movieID)
+	}
+
+	if total < offset {
+		return nil, total, customerrors.NotFoundf("Page number is out of range")
+	}
 	rows, err := r.db.Query(`
 		SELECT
 			actors.id,
@@ -330,9 +342,9 @@ func (r *MovieRepository) Actors(movieID int64) ([]models.Actor, error) {
 		FROM movie_actor
 		JOIN actors ON movie_actor.actor_id = actors.id
 		WHERE movie_actor.movie_id = ?
-		ORDER BY actor_id`, movieID)
+		ORDER BY actor_id LIMIT ? OFFSET ?`, movieID, limit, offset)
 	if err != nil {
-		return nil, err
+		return nil, total, err
 	}
 	defer rows.Close()
 
@@ -340,15 +352,13 @@ func (r *MovieRepository) Actors(movieID int64) ([]models.Actor, error) {
 	for rows.Next() {
 		var actor models.Actor
 		if err := rows.Scan(&actor.ID, &actor.Name, &actor.BirthDate); err != nil {
-			return nil, err
+			return nil, total, err
 		}
 		actors = append(actors, actor)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, total, err
 	}
-	if len(actors) == 0 {
-		return nil, customerrors.NotFoundf("No actors found for movie with ID %d", movieID)
-	}
-	return actors, nil
+
+	return actors, total, nil
 }
