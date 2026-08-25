@@ -20,13 +20,22 @@ func (h *MovieHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	var filter models.MovieFilter
 
 	//take the filter params from the query string
-	if raw, err := parseInt64p(r, "genre"); err == nil {
+	if raw, err := parseInt64p(r, "genre"); err != nil {
+		respondError(w, err)
+		return
+	} else {
 		filter.GenreID = raw
 	}
-	if raw, err := parseInt64p(r, "year"); err == nil {
+	if raw, err := parseInt64p(r, "year"); err != nil {
+		respondError(w, err)
+		return
+	} else {
 		filter.Year = raw
 	}
-	if raw, err := parseInt64p(r, "actor"); err == nil {
+	if raw, err := parseInt64p(r, "actor"); err != nil {
+		respondError(w, err)
+		return
+	} else {
 		filter.ActorID = raw
 	}
 

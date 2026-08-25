@@ -101,8 +101,8 @@ func parseInt64p(r *http.Request, key string) (*int64, error) {
 		return nil, nil
 	}
 	val, err := strconv.ParseInt(raw, 10, 64)
-	if err != nil {
-		return nil, customerrors.Validationf("invalid %s '%s': must be an integer", key, raw)
+	if err != nil || val <= 0 {
+		return nil, customerrors.Validationf("invalid %s '%s': must be a positive integer", key, raw)
 	}
 	return &val, nil
 }
