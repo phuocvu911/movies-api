@@ -29,6 +29,9 @@ func (r *MovieRepository) GetAll() ([]models.Movie, error) {
 		}
 		movies = append(movies, movie)
 	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
 	// If no movies found, return a NotFoundError
 	if len(movies) == 0 {
 		return nil, customerrors.NotFoundf("No movie found")
@@ -51,6 +54,9 @@ func (r *MovieRepository) Search(title string) ([]models.Movie, error) {
 			return nil, err
 		}
 		movies = append(movies, movie)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
 	}
 	// If no movies found, return a NotFoundError
 	if len(movies) == 0 {
