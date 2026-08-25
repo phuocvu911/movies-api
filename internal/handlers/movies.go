@@ -39,7 +39,14 @@ func (h *MovieHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 		filter.ActorID = raw
 	}
 
-	movies, err := h.service.GetAll(filter)
+	//take the pagination parameters from the query string
+	page, size, err := pagination(r)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+
+	movies, err := h.service.GetAll(filter, page, size)
 	if err != nil {
 		respondError(w, err)
 		return

@@ -43,6 +43,11 @@ func (r *ActorRepository) GetAll(limit, offset int) ([]models.Actor, int, error)
 		return nil, 0, err
 	}
 
+	// If no actors found, return a NotFoundError
+	if total == 0 {
+		return nil, 0, customerrors.NotFoundf("No actor found")
+	}
+
 	if total < offset {
 		return nil, total, customerrors.NotFoundf("Page number is out of range")
 	}
@@ -64,10 +69,7 @@ func (r *ActorRepository) GetAll(limit, offset int) ([]models.Actor, int, error)
 	if err = rows.Err(); err != nil {
 		return nil, 0, err
 	}
-	// If no actors found, return a NotFoundError
-	if len(actors) == 0 {
-		return nil, 0, customerrors.NotFoundf("No actor found")
-	}
+
 	return actors, total, nil
 }
 

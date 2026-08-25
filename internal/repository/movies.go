@@ -16,37 +16,51 @@ func NewMovieRepository(db *sql.DB) *MovieRepository {
 	return &MovieRepository{db: db}
 }
 
-func (r *MovieRepository) GetAll(filter models.MovieFilter) ([]models.Movie, error) {
+func (r *MovieRepository) GetAll(filter models.MovieFilter, limit, offset int) ([]models.Movie, int, error) {
 	var command string
-	var arg int64
+	var args []any
+	selectStatement := `SELECT id, title, release_year, duration FROM movies`
+	countStatement := `SELECT count(*) FROM movies`
+	limitOffsetClause := ` ORDER BY movies.id LIMIT ? OFFSET ?`
 
+	//build the command and arg for filter, otherwhise command stays empty string to get all the movies
 	if filter.ActorID != nil {
-		command = `
-			SELECT id, title, release_year, duration 
-			FROM movies 
+		command = `		
 			INNER JOIN movie_actor ON movies.id = movie_actor.movie_id 
-			WHERE movie_actor.actor_id = ?`
-		arg = *filter.ActorID
+			WHERE movie_actor.actor_id = ?
+			`
+		args = append(args, *filter.ActorID)
 	} else if filter.GenreID != nil {
 		command = `
-			SELECT id, title, release_year, duration 
-			FROM movies 
 			INNER JOIN movie_genre ON movies.id = movie_genre.movie_id 
-			WHERE movie_genre.genre_id = ?`
-		arg = *filter.GenreID
+			WHERE movie_genre.genre_id = ?
+			`
+		args = append(args, *filter.GenreID)
 	} else if filter.Year != nil {
 		command = `
-			SELECT id, title, release_year, duration 
-			FROM movies 
-			WHERE release_year = ?`
-		arg = *filter.Year
-	} else {
-		command = `SELECT id, title, release_year, duration FROM movies`
+			WHERE release_year = ?
+			`
+		args = append(args, *filter.Year)
 	}
 
-	rows, err := r.db.Query(command, arg)
+	var total int
+	if err := r.db.QueryRow(countStatement+command, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	// If no movies found, return a NotFoundError
+	if total == 0 {
+		return nil, total, customerrors.NotFoundf("No movie found")
+	}
+
+	if total < offset {
+		return nil, total, customerrors.NotFoundf("Page number is out of range")
+	}
+
+	queryArgs := append(args, limit, offset)
+	rows, err := r.db.Query(selectStatement+" "+command+" "+limitOffsetClause, queryArgs...)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -54,18 +68,15 @@ func (r *MovieRepository) GetAll(filter models.MovieFilter) ([]models.Movie, err
 	for rows.Next() {
 		var movie models.Movie
 		if err := rows.Scan(&movie.ID, &movie.Title, &movie.Year, &movie.Duration); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		movies = append(movies, movie)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	// If no movies found, return a NotFoundError
-	if len(movies) == 0 {
-		return nil, customerrors.NotFoundf("No movie found")
-	}
-	return movies, nil
+
+	return movies, total, nil
 }
 
 // Search searches for movies by title (partial match, case-insensitive).
