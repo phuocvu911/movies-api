@@ -311,7 +311,7 @@ func (r *MovieRepository) GetByActorID(actorID int64) ([]models.Movie, error) {
 }
 
 func (r *MovieRepository) GetActorsByMovieID(movieID int64) ([]models.Actor, error) {
-	rows, err := r.db.Query("SELECT a.id, a.name, a.birth_date FROM actors a JOIN movie_actor ma ON a.ID = ma.actor_id WHERE ma.movie_id = ?", movieID)
+	rows, err := r.db.Query("SELECT a.id, a.name, a.birth_date FROM actors a JOIN movie_actor ma ON a.id = ma.actor_id WHERE ma.movie_id = ?", movieID)
 	if err != nil {
 		return nil, err
 	}
@@ -334,4 +334,56 @@ func (r *MovieRepository) GetActorsByMovieID(movieID int64) ([]models.Actor, err
 		return nil, customerrors.NotFoundf("No actors found for movie ID %d", movieID)
 	}
 	return actors, nil
+}
+
+func (r *MovieRepository) GetDetailByID(id int64) (models.MovieDetail, error) {
+	var movie models.MovieDetail
+
+	err := r.db.QueryRow("SELECT id, title, release_year, duration FROM movies WHERE id = ?", id).Scan(&movie.ID, &movie.Title, &movie.Year, &movie.Duration)
+	if errors.Is(err, sql.ErrNoRows) {
+		return models.MovieDetail{}, customerrors.NotFoundf("Movie with id %d not found", id)
+	}
+	if err != nil {
+		return models.MovieDetail{}, err
+	}
+
+	genreRows, err := r.db.Query("SELECT genre_id FROM movie_genre WHERE movie_id = ?", id)
+	if err != nil {
+		return models.MovieDetail{}, err
+	}
+	defer genreRows.Close()
+
+	var genreIDs []int64
+	for genreRows.Next() {
+		var genreID int64
+		if err := genreRows.Scan(&genreID); err != nil {
+			return models.MovieDetail{}, err
+		}
+		genreIDs = append(genreIDs, genreID)
+	}
+	if err := genreRows.Err(); err != nil {
+		return models.MovieDetail{}, err
+	}
+
+	actorRows, err := r.db.Query("SELECT actor_id FROM movie_actor WHERE movie_id = ?", id)
+	if err != nil {
+		return models.MovieDetail{}, err
+	}
+	defer actorRows.Close()
+
+	var actorIDs []int64
+	for actorRows.Next() {
+		var actorID int64
+		if err := actorRows.Scan(&actorID); err != nil {
+			return models.MovieDetail{}, err
+		}
+		actorIDs = append(actorIDs, actorID)
+	}
+	if err := actorRows.Err(); err != nil {
+		return models.MovieDetail{}, err
+	}
+
+	movie.GenreIDs = genreIDs
+	movie.ActorIDs = actorIDs
+	return movie, nil
 }
