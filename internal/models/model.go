@@ -26,6 +26,7 @@ type MoviePatch struct {
 	ActorIDs *[]int64 `json:"actor_id" validate:"omitempty,dive,gt=0"`
 }
 
+// has all relationships
 type MovieDetail struct {
 	ID       int64   `json:"id"`
 	Title    string  `json:"title"`
