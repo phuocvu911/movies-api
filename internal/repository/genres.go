@@ -61,6 +61,9 @@ func (r *GenreRepository) GetAll() ([]models.Genre, error) {
 		}
 		genres = append(genres, genre)
 	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
 	// If no genres found, return a NotFoundError
 	if len(genres) == 0 {
 		return nil, customerrors.NotFoundf("No genre found")
@@ -98,6 +101,11 @@ func (r *GenreRepository) GetMoviesByGenreID(genreID int64) ([]models.Movie, err
 		}
 		movies = append(movies, movie)
 	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
 	// If no movies found for the genre, return a NotFoundError
 	if len(movies) == 0 {
 		return nil, customerrors.NotFoundf("No movies found for genre ID %d", genreID)
