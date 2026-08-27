@@ -214,7 +214,7 @@ func (r *MovieRepository) Delete(id int64, force bool) error {
 
 	if genreCount > 0 || actorCount > 0 {
 		if !force {
-			return customerrors.Conflictf("Movie with id %d has associated genres or actors", id)
+			return customerrors.Validationf("Movie with id %d has associated genres or actors", id)
 		}
 	}
 
