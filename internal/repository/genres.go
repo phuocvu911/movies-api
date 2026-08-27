@@ -61,6 +61,9 @@ func (r *GenreRepository) GetAll() ([]models.Genre, error) {
 		}
 		genres = append(genres, genre)
 	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
 	// If no genres found, return a NotFoundError
 	if len(genres) == 0 {
 		return nil, customerrors.NotFoundf("No genre found")
@@ -98,6 +101,11 @@ func (r *GenreRepository) GetMoviesByGenreID(genreID int64) ([]models.Movie, err
 		}
 		movies = append(movies, movie)
 	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
 	// If no movies found for the genre, return a NotFoundError
 	if len(movies) == 0 {
 		return nil, customerrors.NotFoundf("No movies found for genre ID %d", genreID)
@@ -135,23 +143,6 @@ func (r *GenreRepository) MovieCount(genreID int64) (int, error) {
 
 // Delete removes a genre by its ID.
 func (r *GenreRepository) Delete(id int64) error {
-	tx, err := r.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	//delete the associations in movie_genre table first
-	_, err = tx.Exec("DELETE FROM movie_genre WHERE genre_id = ?", id)
-	if err != nil {
-		return err
-	}
-
-	//delete the genre from genres table
-	_, err = tx.Exec("DELETE FROM genres WHERE id = ?", id)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
+	_, err := r.db.Exec(`DELETE FROM genres WHERE id = ?`, id)
+	return err
 }

@@ -52,6 +52,9 @@ func (r *ActorRepository) GetAll() ([]models.Actor, error) {
 		}
 		actors = append(actors, actor)
 	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
 	// If no actors found, return a NotFoundError
 	if len(actors) == 0 {
 		return nil, customerrors.NotFoundf("No actor found")
@@ -76,6 +79,9 @@ func (r *ActorRepository) GetByName(name string) ([]models.Actor, error) {
 		actors = append(actors, actor)
 	}
 
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
 	// If no actors found, return a NotFoundError
 	if len(actors) == 0 {
 		return nil, customerrors.NotFoundf("No actor found with name %s", name)
@@ -121,6 +127,11 @@ func (r *ActorRepository) GetByIDForPatch(id int64) (models.ActorPatch, error) {
 		}
 		movieIDs = append(movieIDs, movieID)
 	}
+
+	if err = rows.Err(); err != nil {
+		return models.ActorPatch{}, err
+	}
+
 	if len(movieIDs) > 0 {
 		actor.MovieIDs = &movieIDs
 	}
@@ -158,11 +169,12 @@ func (r *ActorRepository) Update(id int64, u models.ActorPatch) error {
 	}
 	if len(sets) > 0 {
 		args = append(args, id)
-		if result, err := tx.Exec(`UPDATE actors SET `+strings.Join(sets, ", ")+` WHERE id = ?`, args...); err != nil {
-			if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
-				return customerrors.NotFoundf("Actor with ID %d not found", id)
-			}
+		result, err := tx.Exec(`UPDATE actors SET `+strings.Join(sets, ", ")+` WHERE id = ?`, args...)
+		if err != nil {
 			return err
+		}
+		if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
+			return customerrors.NotFoundf("Actor with ID %d not found", id)
 		}
 	}
 
@@ -187,23 +199,8 @@ func (r *ActorRepository) Update(id int64, u models.ActorPatch) error {
 
 // Delete removes an actor and its associated movie relationships, with force true already specified.
 func (r *ActorRepository) Delete(id int64) error {
-	tx, err := r.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	// Delete relationships in movie_actor table
-	if _, err := tx.Exec(`DELETE FROM movie_actor WHERE actor_id = ?`, id); err != nil {
-		return err
-	}
-
-	// Delete the actor
-	if _, err := tx.Exec(`DELETE FROM actors WHERE id = ?`, id); err != nil {
-		return err
-	}
-
-	return tx.Commit()
+	_, err := r.db.Exec(`DELETE FROM actors WHERE id = ?`, id)
+	return err
 }
 
 // move this to movie repository later
@@ -246,6 +243,11 @@ func (r *ActorRepository) GetMoviesByActorID(actorID int64) ([]models.Movie, err
 		}
 		movies = append(movies, movie)
 	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
 	if len(movies) == 0 {
 		return nil, customerrors.NotFoundf("No movie found for actor with id %d", actorID)
 	}

@@ -71,7 +71,7 @@ func (s *ActorService) Delete(id int64, force bool) error {
 		return err
 	}
 	if count > 0 && !force {
-		return customerrors.Validationf("Unable to delete actor '%s' as they are associated with %d movies", actor.Name, count)
+		return customerrors.Validationf("Unable to delete actor '%s' as he/she is associated with %d movies", actor.Name, count)
 	}
 	return s.repo.Delete(id)
 }
