@@ -9,7 +9,7 @@ import (
 
 // Open the connection to data.db and set maxopenconnection is 1
 func Open() (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", "./data.db?_foreign_keys=on")
+	db, err := sql.Open("sqlite3", "./data.db?_foreign_keys=on") //turn on foreign keys in schema
 	if err != nil {
 		return nil, err
 	}
