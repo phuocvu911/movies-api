@@ -30,7 +30,12 @@ func (h *MovieHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	if genre != "" {
 		genreID, err := strconv.ParseInt(genre, 10, 64)
 		if err != nil || genreID <= 0 {
-			respondError(w, customerrors.Validationf("Invalid genre ID %q", genre))
+			respondError(w, customerrors.Validationf("Invalid genre ID %v", genreID))
+			return
+		}
+		movies, err := h.service.GetByGenreID(genreID)
+		if err != nil {
+			respondError(w, err)
 			return
 		}
 
@@ -41,7 +46,7 @@ func (h *MovieHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	if year != "" {
 		yearNo, err := strconv.Atoi(year)
 		if err != nil || yearNo <= 0 {
-			respondError(w, customerrors.Validationf("Invalid release year %q", year))
+			respondError(w, customerrors.Validationf("Invalid release year %v", yearNo))
 			return
 		}
 
@@ -52,7 +57,7 @@ func (h *MovieHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	if actor != "" {
 		actorID, err := strconv.ParseInt(actor, 10, 64)
 		if err != nil || actorID <= 0 {
-			respondError(w, customerrors.Validationf("Invalid actor ID %q", actor))
+			respondError(w, customerrors.Validationf("Invalid actor ID %v", actorID))
 			return
 		}
 
