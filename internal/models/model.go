@@ -40,8 +40,8 @@ type MovieDetail struct {
 type PageInfo struct {
 	Page          int `json:"page"`
 	Size          int `json:"size"`
-	TotalElements int `json:"total_elements`
-	TotalPages    int `json:"total_pages`
+	TotalElements int `json:"total_elements"`
+	TotalPages    int `json:"total_pages"`
 }
 
 // Page is a paginated list response envelope, generic over the type of results it contains
