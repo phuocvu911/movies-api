@@ -115,7 +115,7 @@ func (r *GenreRepository) GetMoviesByGenreID(genreID int64, limit, offset int) (
 		SELECT m.id, m.title, m.release_year, m.duration
 		FROM movies m
 		JOIN movie_genre mg ON m.id = mg.movie_id
-		WHERE mg.genre_id = ? LIMIT ? OFFSET ?`, genreID)
+		WHERE mg.genre_id = ? LIMIT ? OFFSET ?`, genreID, limit, offset)
 	if err != nil {
 		return nil, 0, err
 	}
