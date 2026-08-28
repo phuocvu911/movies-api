@@ -36,9 +36,14 @@ type MovieDetail struct {
 	ActorIDs []int64 `json:"actor_ids"`
 }
 
-type PaginatedResponse[T any] struct {
-	Data  []T `json:"data"`
-	Page  int `json:"page"`
-	Size  int `json:"size"`
-	Total int `json:"total"`
+type PageInfo struct {
+	Page          int `json:"page"`
+	Size          int `json:"size"`
+	TotalElements int `json:"total_elements`
+	TotalPages    int `json:"total_pages`
+}
+
+type Page[T any] struct {
+	Results    []T      `json:"results"`
+	Pagination PageInfo `json:"pagination"`
 }
