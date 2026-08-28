@@ -89,7 +89,7 @@ func (r *ActorRepository) GetByName(name string, limit, offset int) ([]models.Ac
 		return nil, 0, customerrors.NotFoundf("Page out of range")
 	}
 
-	rows, err := r.db.Query("SELECT id, name, birth_date FROM actors WHERE LOWER(name) LIKE ?  LIMIT ? OFFSET ?", "%"+name+"%")
+	rows, err := r.db.Query("SELECT id, name, birth_date FROM actors WHERE LOWER(name) LIKE ?  LIMIT ? OFFSET ?", "%"+name+"%", limit, offset)
 	if err != nil {
 		return nil, 0, err
 	}

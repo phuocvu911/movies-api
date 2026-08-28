@@ -114,7 +114,7 @@ func (r *MovieRepository) Search(title string, limit, offset int) ([]models.Movi
 		return nil, 0, err
 	}
 
-	return movies, 0, nil
+	return movies, total, nil
 }
 
 func (r *MovieRepository) Create(input models.MovieRequest) (models.Movie, error) {
@@ -284,7 +284,7 @@ func (r *MovieRepository) Delete(id int64, force bool) error {
 
 func (r *MovieRepository) GetActorsByMovieID(movieID int64, limit, offset int) ([]models.Actor, int, error) {
 	var total int
-	err := r.db.QueryRow("SELECT COUNT (*) FROM movie_actor WHERE movie_id = ?").Scan(&total)
+	err := r.db.QueryRow("SELECT COUNT (*) FROM movie_actor WHERE movie_id = ?", movieID).Scan(&total)
 	if err != nil {
 		return nil, 0, err
 	}
