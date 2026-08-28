@@ -16,10 +16,45 @@ func NewMovieRepository(db *sql.DB) *MovieRepository {
 	return &MovieRepository{db: db}
 }
 
-func (r *MovieRepository) GetAll(filter models.MovieFilter, limit, offset int) ([]models.Movie, error) {
-	rows, err := r.db.Query("SELECT id, title, release_year, duration FROM movies")
+func (r *MovieRepository) GetAll(filter models.MovieFilter, limit, offset int) ([]models.Movie, int, error) {
+	conditions := []string{}
+	args := []any{}
+	joins := ""
+
+	if filter.Year != nil {
+		conditions = append(conditions, "m.release_year = ?")
+		args = append(args, *filter.Year)
+	}
+
+	if filter.GenreID != nil {
+		joins += " JOIN movie_genre mg ON mg.movie_id = m.id"
+		conditions = append(conditions, "mg.genre_id = ?")
+		args = append(args, *filter.GenreID)
+	}
+
+	if filter.ActorID != nil {
+		joins += " JOIN movie_actor ma ON ma.movie_id = m.id"
+		conditions = append(conditions, "ma.actor_id = ?")
+		args = append(args, *filter.ActorID)
+	}
+
+	whereClause := ""
+	if len(conditions) > 0 {
+		whereClause = " WHERE " + strings.Join(conditions, " AND ")
+	}
+
+	countQuery := "SELECT COUNT (*) FROM movies m" + joins + whereClause
+	var total int
+	err := r.db.QueryRow(countQuery, args...).Scan(&total)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+
+	query := "SELECT m.id, m.title, m.release_year, m.duration FROM movies m" + joins + whereClause + " ORDER BY m.id LIMIT ? OFFSET ?"
+	queryArgs := append(args, limit, offset)
+	rows, err := r.db.Query(query, queryArgs...)
+	if err != nil {
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -27,18 +62,15 @@ func (r *MovieRepository) GetAll(filter models.MovieFilter, limit, offset int) (
 	for rows.Next() {
 		var movie models.Movie
 		if err := rows.Scan(&movie.ID, &movie.Title, &movie.Year, &movie.Duration); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		movies = append(movies, movie)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	// If no movies found, return a NotFoundError
-	if len(movies) == 0 {
-		return nil, customerrors.NotFoundf("No movie found")
-	}
-	return movies, nil
+
+	return movies, total, nil
 }
 
 // Search searches for movies by title (partial match, case-insensitive).

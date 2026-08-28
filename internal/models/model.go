@@ -51,7 +51,7 @@ type Page[T any] struct {
 }
 
 type MovieFilter struct {
-	GenreID *int64
 	Year    *int
+	GenreID *int64
 	ActorID *int64
 }
