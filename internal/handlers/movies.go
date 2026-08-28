@@ -33,11 +33,6 @@ func (h *MovieHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 			respondError(w, customerrors.Validationf("Invalid genre ID %v", genreID))
 			return
 		}
-		movies, err := h.service.GetByGenreID(genreID)
-		if err != nil {
-			respondError(w, err)
-			return
-		}
 
 		filter.GenreID = &genreID
 	}
