@@ -35,3 +35,10 @@ type MovieDetail struct {
 	GenreIDs []int64 `json:"genre_ids"`
 	ActorIDs []int64 `json:"actor_ids"`
 }
+
+type PaginatedResponse[T any] struct {
+	Data  []T `json:"data"`
+	Page  int `json:"page"`
+	Size  int `json:"size"`
+	Total int `json:"total"`
+}
