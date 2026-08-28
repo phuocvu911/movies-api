@@ -43,18 +43,22 @@ func (h *ActorHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 // GetAll handles GET /api/actors.
 func (h *ActorHandler) GetAll(w http.ResponseWriter, r *http.Request) {
+	page, size, err := pagination(r)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
 	// Check for optional name query parameter
 	name := r.URL.Query().Get("name")
 
-	var actors []models.Actor
-	var err error
+	var actors models.Page[models.Actor]
 
 	if name != "" {
 		// Filter by name (partially, case-insensitive)
-		actors, err = h.service.GetByName(name)
+		actors, err = h.service.GetByName(name, page, size)
 	} else {
 		// Return all actors
-		actors, err = h.service.GetAll()
+		actors, err = h.service.GetAll(page, size)
 	}
 
 	if err != nil {
@@ -132,13 +136,19 @@ func (h *ActorHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 // Movies handles GET /api/actors/{id}/movies.
 func (h *ActorHandler) Movies(w http.ResponseWriter, r *http.Request) {
+	page, size, err := pagination(r)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+
 	id, err := pathID(r)
 	if err != nil {
 		respondError(w, err)
 		return
 	}
 
-	movies, err := h.service.Movies(id)
+	movies, err := h.service.Movies(id, page, size)
 	if err != nil {
 		respondError(w, err)
 		return

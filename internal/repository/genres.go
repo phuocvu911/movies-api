@@ -46,10 +46,24 @@ func (r *GenreRepository) Create(name string) (models.Genre, error) {
 }
 
 // GetAll returns all genres and returns a NotFoundError if no genres exist.
-func (r *GenreRepository) GetAll() ([]models.Genre, error) {
-	rows, err := r.db.Query("SELECT id, name FROM genres")
+func (r *GenreRepository) GetAll(limit, offset int) ([]models.Genre, int, error) {
+	var total int
+	err := r.db.QueryRow("SELECT COUNT (*) FROM genres").Scan(&total)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+
+	if total == 0 {
+		return nil, 0, customerrors.NotFoundf("No genre found")
+	}
+
+	if total < offset {
+		return nil, 0, customerrors.NotFoundf("Page out of range")
+	}
+
+	rows, err := r.db.Query("SELECT id, name FROM genres LIMIT ? OFFSET ?", limit, offset)
+	if err != nil {
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -57,18 +71,18 @@ func (r *GenreRepository) GetAll() ([]models.Genre, error) {
 	for rows.Next() {
 		var genre models.Genre
 		if err := rows.Scan(&genre.ID, &genre.Name); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		genres = append(genres, genre)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	// If no genres found, return a NotFoundError
 	if len(genres) == 0 {
-		return nil, customerrors.NotFoundf("No genre found")
+		return nil, 0, customerrors.NotFoundf("No genre found")
 	}
-	return genres, nil
+	return genres, total, nil
 }
 
 // GetByID returns a genre by its ID and returns a NotFoundError if the genre does not exist.
@@ -82,14 +96,28 @@ func (r *GenreRepository) GetByID(id int64) (models.Genre, error) {
 }
 
 // GetMoviesByGenreID returns all movies associated with a specific genre ID.
-func (r *GenreRepository) GetMoviesByGenreID(genreID int64) ([]models.Movie, error) {
+func (r *GenreRepository) GetMoviesByGenreID(genreID int64, limit, offset int) ([]models.Movie, int, error) {
+	var total int
+	err := r.db.QueryRow("SELECT COUNT (*) FROM movie_genre WHERE genre_id = ?", genreID).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if total == 0 {
+		return nil, 0, customerrors.NotFoundf("No movie found")
+	}
+
+	if total < offset {
+		return nil, 0, customerrors.NotFoundf("Page out of range")
+	}
+
 	rows, err := r.db.Query(`
 		SELECT m.id, m.title, m.release_year, m.duration
 		FROM movies m
 		JOIN movie_genre mg ON m.id = mg.movie_id
-		WHERE mg.genre_id = ?`, genreID)
+		WHERE mg.genre_id = ? LIMIT ? OFFSET ?`, genreID, limit, offset)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -97,20 +125,16 @@ func (r *GenreRepository) GetMoviesByGenreID(genreID int64) ([]models.Movie, err
 	for rows.Next() {
 		var movie models.Movie
 		if err := rows.Scan(&movie.ID, &movie.Title, &movie.Year, &movie.Duration); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		movies = append(movies, movie)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	// If no movies found for the genre, return a NotFoundError
-	if len(movies) == 0 {
-		return nil, customerrors.NotFoundf("No movies found for genre ID %d", genreID)
-	}
-	return movies, nil
+	return movies, total, nil
 }
 
 // Update updates a genre's name by its ID.

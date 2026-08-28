@@ -43,7 +43,13 @@ func (h *GenreHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 // GetAll handles GET /api/genres.
 func (h *GenreHandler) GetAll(w http.ResponseWriter, r *http.Request) {
-	genres, err := h.service.GetAll()
+	page, size, err := pagination(r)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+
+	genres, err := h.service.GetAll(page, size)
 	if err != nil {
 		respondError(w, err)
 		return
@@ -68,12 +74,17 @@ func (h *GenreHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 // Movies handles GET /api/genres/{id}/movies
 func (h *GenreHandler) Movies(w http.ResponseWriter, r *http.Request) {
+	page, size, err := pagination(r)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
 	id, err := pathID(r)
 	if err != nil {
 		respondError(w, err)
 		return
 	}
-	movies, err := h.service.Movies(id)
+	movies, err := h.service.Movies(id, page, size)
 	if err != nil {
 		respondError(w, err)
 		return

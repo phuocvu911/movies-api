@@ -18,6 +18,14 @@ func NewMovieHandler(s *service.MovieService) *MovieHandler {
 }
 
 func (h *MovieHandler) GetAll(w http.ResponseWriter, r *http.Request) {
+	page, size, err := pagination(r)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+
+	filter := models.MovieFilter{}
+
 	genre := r.URL.Query().Get("genre")
 	if genre != "" {
 		genreID, err := strconv.ParseInt(genre, 10, 64)
@@ -30,8 +38,8 @@ func (h *MovieHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 			respondError(w, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, movies)
-		return
+
+		filter.GenreID = &genreID
 	}
 
 	year := r.URL.Query().Get("year")
@@ -41,13 +49,8 @@ func (h *MovieHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 			respondError(w, customerrors.Validationf("Invalid release year %v", yearNo))
 			return
 		}
-		movies, err := h.service.GetByYear(yearNo)
-		if err != nil {
-			respondError(w, err)
-			return
-		}
-		writeJSON(w, http.StatusOK, movies)
-		return
+
+		filter.Year = &yearNo
 	}
 
 	actor := r.URL.Query().Get("actor")
@@ -57,16 +60,11 @@ func (h *MovieHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 			respondError(w, customerrors.Validationf("Invalid actor ID %v", actorID))
 			return
 		}
-		movies, err := h.service.GetByActorID(actorID)
-		if err != nil {
-			respondError(w, err)
-			return
-		}
-		writeJSON(w, http.StatusOK, movies)
-		return
+
+		filter.ActorID = &actorID
 	}
 
-	movies, err := h.service.GetAll()
+	movies, err := h.service.GetAll(filter, page, size)
 	if err != nil {
 		respondError(w, err)
 		return
@@ -75,6 +73,12 @@ func (h *MovieHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *MovieHandler) Search(w http.ResponseWriter, r *http.Request) {
+	page, size, err := pagination(r)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+
 	query := r.URL.Query().Get("title")
 
 	if query == "" {
@@ -82,7 +86,7 @@ func (h *MovieHandler) Search(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	movies, err := h.service.Search(query)
+	movies, err := h.service.Search(query, page, size)
 	if err != nil {
 		respondError(w, err)
 		return
@@ -176,13 +180,18 @@ func (h *MovieHandler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *MovieHandler) Actors(w http.ResponseWriter, r *http.Request) {
+	page, size, err := pagination(r)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
 	movieID, err := pathID(r)
 	if err != nil {
 		respondError(w, err)
 		return
 	}
 
-	actors, err := h.service.GetActorsByMovieID(movieID)
+	actors, err := h.service.GetActorsByMovieID(movieID, page, size)
 	if err != nil {
 		respondError(w, err)
 		return

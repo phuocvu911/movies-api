@@ -35,3 +35,23 @@ type MovieDetail struct {
 	GenreIDs []int64 `json:"genre_ids"`
 	ActorIDs []int64 `json:"actor_ids"`
 }
+
+// PageInfo carries pagination metadata for list responses
+type PageInfo struct {
+	Page          int `json:"page"`
+	Size          int `json:"size"`
+	TotalElements int `json:"total_elements"`
+	TotalPages    int `json:"total_pages"`
+}
+
+// Page is a paginated list response envelope, generic over the type of results it contains
+type Page[T any] struct {
+	Results    []T      `json:"results"`
+	Pagination PageInfo `json:"pagination"`
+}
+
+type MovieFilter struct {
+	Year    *int
+	GenreID *int64
+	ActorID *int64
+}

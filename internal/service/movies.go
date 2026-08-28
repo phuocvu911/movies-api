@@ -13,13 +13,23 @@ func NewMovieService(repo *repository.MovieRepository) *MovieService {
 	return &MovieService{repo: repo}
 }
 
-func (s *MovieService) GetAll() ([]models.Movie, error) {
-	return s.repo.GetAll()
+func (s *MovieService) GetAll(filter models.MovieFilter, page, size int) (models.Page[models.Movie], error) {
+	offset := page * size
+	movies, total, err := s.repo.GetAll(filter, size, offset)
+	if err != nil {
+		return models.Page[models.Movie]{}, err
+	}
+	return newPage(movies, page, size, total), nil
 }
 
 // Search searches for movies by title.
-func (s *MovieService) Search(title string) ([]models.Movie, error) {
-	return s.repo.Search(title)
+func (s *MovieService) Search(title string, page, size int) (models.Page[models.Movie], error) {
+	offset := page * size
+	movies, total, err := s.repo.Search(title, size, offset)
+	if err != nil {
+		return models.Page[models.Movie]{}, err
+	}
+	return newPage(movies, page, size, total), nil
 }
 
 func (s *MovieService) Create(input models.MovieRequest) (models.Movie, error) {
@@ -41,18 +51,11 @@ func (s *MovieService) Delete(id int64, force bool) error {
 	return s.repo.Delete(id, force)
 }
 
-func (s *MovieService) GetByGenreID(genreID int64) ([]models.Movie, error) {
-	return s.repo.GetByGenreID(genreID)
-}
-
-func (s *MovieService) GetByYear(releaseYear int) ([]models.Movie, error) {
-	return s.repo.GetByYear(releaseYear)
-}
-
-func (s *MovieService) GetByActorID(actorID int64) ([]models.Movie, error) {
-	return s.repo.GetByActorID(actorID)
-}
-
-func (s *MovieService) GetActorsByMovieID(movieID int64) ([]models.Actor, error) {
-	return s.repo.GetActorsByMovieID(movieID)
+func (s *MovieService) GetActorsByMovieID(movieID int64, page, size int) (models.Page[models.Actor], error) {
+	offset := page * size
+	actors, total, err := s.repo.GetActorsByMovieID(movieID, size, offset)
+	if err != nil {
+		return models.Page[models.Actor]{}, err
+	}
+	return newPage(actors, page, size, total), nil
 }

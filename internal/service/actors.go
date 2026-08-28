@@ -27,13 +27,23 @@ func (s *ActorService) Create(input models.ActorRequest) (models.Actor, error) {
 }
 
 // GetAll returns all actors.
-func (s *ActorService) GetAll() ([]models.Actor, error) {
-	return s.repo.GetAll()
+func (s *ActorService) GetAll(page, size int) (models.Page[models.Actor], error) {
+	offset := page * size
+	actors, total, err := s.repo.GetAll(size, offset)
+	if err != nil {
+		return models.Page[models.Actor]{}, err
+	}
+	return newPage(actors, page, size, total), nil
 }
 
 // GetByName returns actors matching the given name (case-insensitive)
-func (s *ActorService) GetByName(name string) ([]models.Actor, error) {
-	return s.repo.GetByName(name)
+func (s *ActorService) GetByName(name string, page, size int) (models.Page[models.Actor], error) {
+	offset := page * size
+	actors, total, err := s.repo.GetByName(name, size, offset)
+	if err != nil {
+		return models.Page[models.Actor]{}, err
+	}
+	return newPage(actors, page, size, total), nil
 }
 
 // GetByID returns an actor by ID.
@@ -77,10 +87,15 @@ func (s *ActorService) Delete(id int64, force bool) error {
 }
 
 // Movies returns all movies associated with an actor.
-func (s *ActorService) Movies(actorID int64) ([]models.Movie, error) {
+func (s *ActorService) Movies(actorID int64, page, size int) (models.Page[models.Movie], error) {
 	//check if the actor exists
 	if _, err := s.repo.GetByID(actorID); err != nil {
-		return nil, err
+		return models.Page[models.Movie]{}, err
 	}
-	return s.repo.GetMoviesByActorID(actorID)
+	offset := page * size
+	movies, total, err := s.repo.GetMoviesByActorID(actorID, size, offset)
+	if err != nil {
+		return models.Page[models.Movie]{}, err
+	}
+	return newPage(movies, page, size, total), nil
 }

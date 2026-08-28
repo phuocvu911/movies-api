@@ -16,10 +16,53 @@ func NewMovieRepository(db *sql.DB) *MovieRepository {
 	return &MovieRepository{db: db}
 }
 
-func (r *MovieRepository) GetAll() ([]models.Movie, error) {
-	rows, err := r.db.Query("SELECT id, title, release_year, duration FROM movies")
+func (r *MovieRepository) GetAll(filter models.MovieFilter, limit, offset int) ([]models.Movie, int, error) {
+	conditions := []string{}
+	args := []any{}
+	joins := ""
+
+	if filter.Year != nil {
+		conditions = append(conditions, "m.release_year = ?")
+		args = append(args, *filter.Year)
+	}
+
+	if filter.GenreID != nil {
+		joins += " JOIN movie_genre mg ON mg.movie_id = m.id"
+		conditions = append(conditions, "mg.genre_id = ?")
+		args = append(args, *filter.GenreID)
+	}
+
+	if filter.ActorID != nil {
+		joins += " JOIN movie_actor ma ON ma.movie_id = m.id"
+		conditions = append(conditions, "ma.actor_id = ?")
+		args = append(args, *filter.ActorID)
+	}
+
+	whereClause := ""
+	if len(conditions) > 0 {
+		whereClause = " WHERE " + strings.Join(conditions, " AND ")
+	}
+
+	countQuery := "SELECT COUNT (*) FROM movies m" + joins + whereClause
+	var total int
+	err := r.db.QueryRow(countQuery, args...).Scan(&total)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+
+	if total == 0 {
+		return nil, 0, customerrors.NotFoundf("No actor found")
+	}
+
+	if total < offset {
+		return nil, 0, customerrors.NotFoundf("Page out of range")
+	}
+
+	query := "SELECT m.id, m.title, m.release_year, m.duration FROM movies m" + joins + whereClause + " ORDER BY m.id LIMIT ? OFFSET ?"
+	queryArgs := append(args, limit, offset)
+	rows, err := r.db.Query(query, queryArgs...)
+	if err != nil {
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -27,25 +70,35 @@ func (r *MovieRepository) GetAll() ([]models.Movie, error) {
 	for rows.Next() {
 		var movie models.Movie
 		if err := rows.Scan(&movie.ID, &movie.Title, &movie.Year, &movie.Duration); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		movies = append(movies, movie)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	// If no movies found, return a NotFoundError
-	if len(movies) == 0 {
-		return nil, customerrors.NotFoundf("No movie found")
-	}
-	return movies, nil
+
+	return movies, total, nil
 }
 
 // Search searches for movies by title (partial match, case-insensitive).
-func (r *MovieRepository) Search(title string) ([]models.Movie, error) {
-	rows, err := r.db.Query("SELECT id, title, release_year, duration FROM movies WHERE LOWER(title) LIKE ?", "%"+title+"%")
+func (r *MovieRepository) Search(title string, limit, offset int) ([]models.Movie, int, error) {
+	var total int
+	err := r.db.QueryRow("SELECT COUNT (*) FROM movies WHERE LOWER(title) LIKE ?", "%"+title+"%").Scan(&total)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+	// If no movies found, return a NotFoundError
+	if total == 0 {
+		return nil, 0, customerrors.NotFoundf("No actor found")
+	}
+
+	if total < offset {
+		return nil, 0, customerrors.NotFoundf("Page out of range")
+	}
+	rows, err := r.db.Query("SELECT id, title, release_year, duration FROM movies WHERE LOWER(title) LIKE ? LIMIT ? OFFSET ?", "%"+title+"%", limit, offset)
+	if err != nil {
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -53,18 +106,15 @@ func (r *MovieRepository) Search(title string) ([]models.Movie, error) {
 	for rows.Next() {
 		var movie models.Movie
 		if err := rows.Scan(&movie.ID, &movie.Title, &movie.Year, &movie.Duration); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		movies = append(movies, movie)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	// If no movies found, return a NotFoundError
-	if len(movies) == 0 {
-		return nil, customerrors.NotFoundf("No movie found for title containing '%s'", title)
-	}
-	return movies, nil
+
+	return movies, total, nil
 }
 
 func (r *MovieRepository) Create(input models.MovieRequest) (models.Movie, error) {
@@ -232,88 +282,24 @@ func (r *MovieRepository) Delete(id int64, force bool) error {
 	return nil
 }
 
-func (r *MovieRepository) GetByGenreID(genreID int64) ([]models.Movie, error) {
-	rows, err := r.db.Query("SELECT m.id, m.title, m.release_year, m.duration FROM movies m JOIN movie_genre mg ON m.id = mg.movie_id WHERE mg.genre_id = ?", genreID)
+func (r *MovieRepository) GetActorsByMovieID(movieID int64, limit, offset int) ([]models.Actor, int, error) {
+	var total int
+	err := r.db.QueryRow("SELECT COUNT (*) FROM movie_actor WHERE movie_id = ?", movieID).Scan(&total)
 	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var movies []models.Movie
-	for rows.Next() {
-		var movie models.Movie
-		if err := rows.Scan(&movie.ID, &movie.Title, &movie.Year, &movie.Duration); err != nil {
-			return movies, err
-		}
-		movies = append(movies, movie)
+		return nil, 0, err
 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, err
+	if total == 0 {
+		return nil, 0, customerrors.NotFoundf("No actor found")
 	}
-	// If no movies found, return a NotFoundError
-	if len(movies) == 0 {
-		return nil, customerrors.NotFoundf("No movie found for genre ID %d", genreID)
-	}
-	return movies, nil
-}
 
-func (r *MovieRepository) GetByYear(releaseYear int) ([]models.Movie, error) {
-	rows, err := r.db.Query("SELECT id, title, release_year, duration FROM movies WHERE release_year = ?", releaseYear)
+	if total < offset {
+		return nil, 0, customerrors.NotFoundf("Page out of range")
+	}
+
+	rows, err := r.db.Query("SELECT a.id, a.name, a.birth_date FROM actors a JOIN movie_actor ma ON a.id = ma.actor_id WHERE ma.movie_id = ? LIMIT ? OFFSET ?", movieID, limit, offset)
 	if err != nil {
-		return []models.Movie{}, err
-	}
-	defer rows.Close()
-
-	var movies []models.Movie
-	for rows.Next() {
-		var movie models.Movie
-		if err := rows.Scan(&movie.ID, &movie.Title, &movie.Year, &movie.Duration); err != nil {
-			return movies, err
-		}
-		movies = append(movies, movie)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	// If no movies found, return a NotFoundError
-	if len(movies) == 0 {
-		return nil, customerrors.NotFoundf("No movie found for release year %d", releaseYear)
-	}
-	return movies, nil
-}
-
-func (r *MovieRepository) GetByActorID(actorID int64) ([]models.Movie, error) {
-	rows, err := r.db.Query("SELECT m.id, m.title, m.release_year, m.duration FROM movies m JOIN movie_actor ma ON ma.movie_id = m.id WHERE ma.actor_id = ?", actorID)
-	if err != nil {
-		return []models.Movie{}, err
-	}
-	defer rows.Close()
-
-	var movies []models.Movie
-	for rows.Next() {
-		var movie models.Movie
-		if err := rows.Scan(&movie.ID, &movie.Title, &movie.Year, &movie.Duration); err != nil {
-			return movies, err
-		}
-		movies = append(movies, movie)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	// If no movies found, return a NotFoundError
-	if len(movies) == 0 {
-		return nil, customerrors.NotFoundf("No movie found for actor ID %d", actorID)
-	}
-	return movies, nil
-}
-
-func (r *MovieRepository) GetActorsByMovieID(movieID int64) ([]models.Actor, error) {
-	rows, err := r.db.Query("SELECT a.id, a.name, a.birth_date FROM actors a JOIN movie_actor ma ON a.id = ma.actor_id WHERE ma.movie_id = ?", movieID)
-	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -321,19 +307,16 @@ func (r *MovieRepository) GetActorsByMovieID(movieID int64) ([]models.Actor, err
 	for rows.Next() {
 		var actor models.Actor
 		if err := rows.Scan(&actor.ID, &actor.Name, &actor.BirthDate); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		actors = append(actors, actor)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	if len(actors) == 0 {
-		return nil, customerrors.NotFoundf("No actors found for movie ID %d", movieID)
-	}
-	return actors, nil
+	return actors, total, nil
 }
 
 func (r *MovieRepository) GetDetailByID(id int64) (models.MovieDetail, error) {
