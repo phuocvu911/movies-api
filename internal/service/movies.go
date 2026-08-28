@@ -13,8 +13,13 @@ func NewMovieService(repo *repository.MovieRepository) *MovieService {
 	return &MovieService{repo: repo}
 }
 
-func (s *MovieService) GetAll() ([]models.Movie, error) {
-	return s.repo.GetAll()
+func (s *MovieService) GetAll(filter models.MovieFilter, page, size int) (models.Page[models.Movie], error) {
+	offset := page * size
+	movies, total, err := s.repo.GetAll(filter, size, offset)
+	if err != nil {
+		return models.Page[models.Movie]{}, err
+	}
+	return newPage(movies, page, size, total), nil
 }
 
 // Search searches for movies by title.

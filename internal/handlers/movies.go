@@ -18,55 +18,48 @@ func NewMovieHandler(s *service.MovieService) *MovieHandler {
 }
 
 func (h *MovieHandler) GetAll(w http.ResponseWriter, r *http.Request) {
+	page, size, err := pagination(r)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+
+	filter := models.MovieFilter{}
+
 	genre := r.URL.Query().Get("genre")
 	if genre != "" {
 		genreID, err := strconv.ParseInt(genre, 10, 64)
 		if err != nil || genreID <= 0 {
-			respondError(w, customerrors.Validationf("Invalid genre ID %q", genreID))
+			respondError(w, customerrors.Validationf("Invalid genre ID %q", genre))
 			return
 		}
-		movies, err := h.service.GetByGenreID(genreID)
-		if err != nil {
-			respondError(w, err)
-			return
-		}
-		writeJSON(w, http.StatusOK, movies)
-		return
+
+		filter.GenreID = &genreID
 	}
 
 	year := r.URL.Query().Get("year")
 	if year != "" {
 		yearNo, err := strconv.Atoi(year)
 		if err != nil || yearNo <= 0 {
-			respondError(w, customerrors.Validationf("Invalid release year %q", yearNo))
+			respondError(w, customerrors.Validationf("Invalid release year %q", year))
 			return
 		}
-		movies, err := h.service.GetByYear(yearNo)
-		if err != nil {
-			respondError(w, err)
-			return
-		}
-		writeJSON(w, http.StatusOK, movies)
-		return
+
+		filter.Year = &yearNo
 	}
 
 	actor := r.URL.Query().Get("actor")
 	if actor != "" {
 		actorID, err := strconv.ParseInt(actor, 10, 64)
 		if err != nil || actorID <= 0 {
-			respondError(w, customerrors.Validationf("Invalid actor ID %q", actorID))
+			respondError(w, customerrors.Validationf("Invalid actor ID %q", actor))
 			return
 		}
-		movies, err := h.service.GetByActorID(actorID)
-		if err != nil {
-			respondError(w, err)
-			return
-		}
-		writeJSON(w, http.StatusOK, movies)
-		return
+
+		filter.ActorID = &actorID
 	}
 
-	movies, err := h.service.GetAll()
+	movies, err := h.service.GetAll(filter, page, size)
 	if err != nil {
 		respondError(w, err)
 		return

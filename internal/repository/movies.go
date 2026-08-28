@@ -16,7 +16,7 @@ func NewMovieRepository(db *sql.DB) *MovieRepository {
 	return &MovieRepository{db: db}
 }
 
-func (r *MovieRepository) GetAll() ([]models.Movie, error) {
+func (r *MovieRepository) GetAll(filter models.MovieFilter, limit, offset int) ([]models.Movie, error) {
 	rows, err := r.db.Query("SELECT id, title, release_year, duration FROM movies")
 	if err != nil {
 		return nil, err
