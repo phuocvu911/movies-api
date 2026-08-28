@@ -76,7 +76,7 @@ func (r *ActorRepository) GetAll(limit, offset int) ([]models.Actor, int, error)
 // GetByName returns actors matching the given name (partially, case-insensitive)
 func (r *ActorRepository) GetByName(name string, limit, offset int) ([]models.Actor, int, error) {
 	var total int
-	err := r.db.QueryRow("SELECT COUNT (*) FROM actors").Scan(&total)
+	err := r.db.QueryRow("SELECT COUNT (*) FROM actors WHERE LOWER(name) LIKE ?", "%"+name+"%").Scan(&total)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -111,7 +111,7 @@ func (r *ActorRepository) GetByName(name string, limit, offset int) ([]models.Ac
 	if len(actors) == 0 {
 		return nil, 0, customerrors.NotFoundf("No actor found with name %s", name)
 	}
-	return actors, 0, nil
+	return actors, total, nil
 }
 
 // GetByID returns a single actor or a NotFoundError.

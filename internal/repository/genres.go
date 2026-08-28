@@ -48,13 +48,13 @@ func (r *GenreRepository) Create(name string) (models.Genre, error) {
 // GetAll returns all genres and returns a NotFoundError if no genres exist.
 func (r *GenreRepository) GetAll(limit, offset int) ([]models.Genre, int, error) {
 	var total int
-	err := r.db.QueryRow("SELECT COUNT (*) FROM actors").Scan(&total)
+	err := r.db.QueryRow("SELECT COUNT (*) FROM genres").Scan(&total)
 	if err != nil {
 		return nil, 0, err
 	}
 
 	if total == 0 {
-		return nil, 0, customerrors.NotFoundf("No actor found")
+		return nil, 0, customerrors.NotFoundf("No genre found")
 	}
 
 	if total < offset {
@@ -98,13 +98,13 @@ func (r *GenreRepository) GetByID(id int64) (models.Genre, error) {
 // GetMoviesByGenreID returns all movies associated with a specific genre ID.
 func (r *GenreRepository) GetMoviesByGenreID(genreID int64, limit, offset int) ([]models.Movie, int, error) {
 	var total int
-	err := r.db.QueryRow("SELECT COUNT (*) FROM actors").Scan(&total)
+	err := r.db.QueryRow("SELECT COUNT (*) FROM movie_genre WHERE genre_id = ?", genreID).Scan(&total)
 	if err != nil {
 		return nil, 0, err
 	}
 
 	if total == 0 {
-		return nil, 0, customerrors.NotFoundf("No actor found")
+		return nil, 0, customerrors.NotFoundf("No movie found")
 	}
 
 	if total < offset {
