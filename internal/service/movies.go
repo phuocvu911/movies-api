@@ -46,18 +46,6 @@ func (s *MovieService) Delete(id int64, force bool) error {
 	return s.repo.Delete(id, force)
 }
 
-func (s *MovieService) GetByGenreID(genreID int64) ([]models.Movie, error) {
-	return s.repo.GetByGenreID(genreID)
-}
-
-func (s *MovieService) GetByYear(releaseYear int) ([]models.Movie, error) {
-	return s.repo.GetByYear(releaseYear)
-}
-
-func (s *MovieService) GetByActorID(actorID int64) ([]models.Movie, error) {
-	return s.repo.GetByActorID(actorID)
-}
-
 func (s *MovieService) GetActorsByMovieID(movieID int64) ([]models.Actor, error) {
 	return s.repo.GetActorsByMovieID(movieID)
 }
