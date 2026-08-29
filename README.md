@@ -19,9 +19,74 @@ git clone https://gitea.kood.tech/hoangphuocvu/movies-api
 cd movies-api
 go run main.go
 ```
+If database got stale between the run (you want to GET the entity that is already got force DELETE), restart the server with:
 
+```bash
+rm data.db && go run main.go
+```
 ## How It Works
-...
+The server listens on the port `:8080` by default. On first run it creates `data.db`, migrates the schema and seeds it with sample data. Seeding is skipped automatically if the database already contains movies.
+
+## API reference
+
+All three entities (`genres`, `movies`, `actors`) support the same CRUD pattern:
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/{entity}` | Create (201) |
+| GET | `/api/{entity}` | List all, paginated (200) |
+| GET | `/api/{entity}/{id}` | Get one by id (200 / 404) |
+| PATCH | `/api/{entity}/{id}` | Partial update (200) |
+| DELETE | `/api/{entity}/{id}` | Delete (400/204); add `?force=true` to also remove relationships |
+
+Relationship and filter endpoints:
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/movies?genre={genreId}` | Movies in a genre |
+| GET | `/api/movies?year={releaseYear}` | Movies from a year |
+| GET | `/api/movies?actor={actorId}` | Movies an actor starred in |
+| GET | `/api/movies/{id}/actors` | All actors in a movie |
+| GET | `/api/movies/search?title={text}` | Case-insensitive partial movie title search |
+| GET | `/api/actors?name={text}` | Case-insensitive partial actor name search |
+| GET | `/api/actors/{id}/movies` | Movies an actor appeared in |
+| GET | `/api/genres/{id}/movies` | Movies having a genre |
+
+Filters for `movies` can be combined, e.g. `/api/movies?genre=1&year=1999`.
+
+### Deletion and relationships
+
+By default, deleting an entity that still has relationships fails with `400`:
+
+```
+DELETE /api/genres/1
+→ 400 "Unable to delete genre 'Action' as it is associated with 12 movies"
+
+DELETE /api/actors/6
+→ 400 "Unable to delete actor 'Tom Hanks' as he/she is associated with 2 movies"
+```
+
+Force deletion removes the entity and it's relationships:
+
+```
+DELETE /api/genres/1?force=true
+→ 204 No Content
+```
+
+### Error handling
+Custom error type and central function to send the appropriate HTTP code is implemented in the codebase.
+
+| Status | Meaning |
+|--------|---------|
+| 400 | Validation failure, malformed body/params, or blocked deletion |
+| 404 | Entity (or referenced filter entity) does not exist |
+| 409 | Conflict with the table (when user try to create duplicate `genre` or `actor`- with exact name and birthdate) |
+| 500 | Unexpected server error |
+
+Validation covers required fields, release year max 2027, positive duration, ISO 8601 birth dates, birthdate can not be in the future, and positivity of every referenced genre/actor/movie id.
+
+### POSTMAN Collection
+Postman collection json file with various test cases covering all endpoints and scenarios is included in the same level of this README. Import it to your Postman app and run.
 
 ## Extras
 ### Pagination
