@@ -74,6 +74,7 @@ DELETE /api/genres/1?force=true
 ```
 
 ### Error handling
+Custom error type and central function to send the appropriate HTTP code is implemented in the codebase.
 
 | Status | Meaning |
 |--------|---------|
@@ -83,6 +84,9 @@ DELETE /api/genres/1?force=true
 | 500 | Unexpected server error |
 
 Validation covers required fields, release year max 2027, positive duration, ISO 8601 birth dates, birthdate can not be in the future, and positivity of every referenced genre/actor/movie id.
+
+### POSTMAN Collection
+Postman collection json file with various test cases covering all endpoints and scenarios is included in the same level of this README. Import it to your Postman app and run.
 
 ## Extras
 ### Pagination
