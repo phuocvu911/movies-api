@@ -51,7 +51,7 @@ func (r *MovieRepository) GetAll(filter models.MovieFilter, limit, offset int) (
 	}
 
 	if total == 0 {
-		return nil, 0, customerrors.NotFoundf("No actor found")
+		return nil, 0, customerrors.NotFoundf("No movie found")
 	}
 
 	if total < offset {
@@ -90,7 +90,7 @@ func (r *MovieRepository) Search(title string, limit, offset int) ([]models.Movi
 	}
 	// If no movies found, return a NotFoundError
 	if total == 0 {
-		return nil, 0, customerrors.NotFoundf("No actor found")
+		return nil, 0, customerrors.NotFoundf("No movie found")
 	}
 
 	if total < offset {

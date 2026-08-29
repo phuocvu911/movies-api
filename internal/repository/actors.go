@@ -132,11 +132,6 @@ func (r *ActorRepository) GetByIDForPatch(id int64) (models.ActorPatch, error) {
 	var actor models.ActorPatch
 	err := r.db.QueryRow(`SELECT id, name, birth_date FROM actors WHERE id = ?`, id).Scan(&actor.Id, &actor.Name, &actor.BirthDate)
 
-	// no need to check for sql.ErrNoRows here, because we already checked for existence in the service layer before calling this function
-	// if errors.Is(err, sql.ErrNoRows) {
-	// 	return models.ActorPatch{}, customerrors.NotFoundf("actor with id %d not found", id)
-	// }
-
 	// get the movie ids associated with the actor
 	rows, err := r.db.Query(`SELECT movie_id FROM movie_actor WHERE actor_id = ?`, id)
 	if err != nil {
@@ -227,19 +222,6 @@ func (r *ActorRepository) Delete(id int64) error {
 	_, err := r.db.Exec(`DELETE FROM actors WHERE id = ?`, id)
 	return err
 }
-
-// move this to movie repository later
-// GetMovieByID returns a single movie by ID or a NotFoundError.
-// func (r *ActorRepository) GetMovieByID(id int64) (int, error) {
-// 	var movie_id int
-// 	err := r.db.QueryRow(`SELECT id FROM movies WHERE id = ?`, id).Scan(&movie_id)
-
-// 	//if we dont have movie for that id
-// 	if errors.Is(err, sql.ErrNoRows) {
-// 		return 0, customerrors.NotFoundf("movie with id %d not found", id)
-// 	}
-// 	return movie_id, err
-// }
 
 // MovieCount returns how many movies are linked to the actor.
 func (r *ActorRepository) MovieCount(id int64) (int, error) {
