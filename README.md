@@ -259,8 +259,8 @@ The response contains the requested results together with pagination information
     "pagination": {
         "page": 0,
         "size": 2,
-        "total_elements": 12,
-        "total_pages": 6
+        "total_elements": 35,
+        "total_pages": 18
     }
 }
 ```
