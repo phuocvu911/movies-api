@@ -1,5 +1,6 @@
 package models
 
+// Movie represents a movie
 type Movie struct {
 	ID       int64  `json:"id"`
 	Title    string `json:"title"`
@@ -50,6 +51,7 @@ type Page[T any] struct {
 	Pagination PageInfo `json:"pagination"`
 }
 
+// MovieFilter represents optional filters for querying movies
 type MovieFilter struct {
 	Year    *int
 	GenreID *int64

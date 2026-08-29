@@ -9,14 +9,18 @@ import (
 	"strconv"
 )
 
+// MovieHandler handles HTTP requests for movie CRUD operations,
+// filtering, searching, and movie-actor relationships.
 type MovieHandler struct {
 	service *service.MovieService
 }
 
+// NewMovieHandler creates a new MovieHandler
 func NewMovieHandler(s *service.MovieService) *MovieHandler {
 	return &MovieHandler{service: s}
 }
 
+// GetAll handles GET /api/movies
 func (h *MovieHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	page, size, err := pagination(r)
 	if err != nil {
@@ -67,6 +71,7 @@ func (h *MovieHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, movies)
 }
 
+// Search handles GET /api/movies/search
 func (h *MovieHandler) Search(w http.ResponseWriter, r *http.Request) {
 	page, size, err := pagination(r)
 	if err != nil {
@@ -89,6 +94,7 @@ func (h *MovieHandler) Search(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, movies)
 }
 
+// Create handles POST /api/movies
 func (h *MovieHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var movieRequest models.MovieRequest
 	if err := decodeJSON(r, &movieRequest); err != nil {
@@ -111,6 +117,7 @@ func (h *MovieHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// GetByID handles GET /api/movies/{id}
 func (h *MovieHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	movieID, err := pathID(r)
 	if err != nil {
@@ -126,6 +133,7 @@ func (h *MovieHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, movie)
 }
 
+// Update handles PATCH /api/movies/{id}
 func (h *MovieHandler) Update(w http.ResponseWriter, r *http.Request) {
 	movieID, err := pathID(r)
 	if err != nil {
@@ -153,6 +161,7 @@ func (h *MovieHandler) Update(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, movie)
 }
 
+// Delete handles DELETE /api/movies/{id}
 func (h *MovieHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	movieID, err := pathID(r)
 	if err != nil {
@@ -174,6 +183,7 @@ func (h *MovieHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// Actors handles GET /api/movies/{id}/actors
 func (h *MovieHandler) Actors(w http.ResponseWriter, r *http.Request) {
 	page, size, err := pagination(r)
 	if err != nil {
