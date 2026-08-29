@@ -2,6 +2,7 @@ package service
 
 import "movies-api/internal/models"
 
+// newPage created a paginated response with results and pagination metadata.
 func newPage[T any](results []T, page, size, total int) models.Page[T] {
 	if results == nil {
 		results = []T{}

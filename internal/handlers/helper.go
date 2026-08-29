@@ -91,7 +91,7 @@ func pagination(r *http.Request) (int, int, error) {
 		var err error
 		size, err = strconv.Atoi(sizeStr)
 		if err != nil || size < 1 || size > maxPageSize {
-			return 0, 0, customerrors.Validationf("Invalid size '%s': must be must be between 1 and %d", sizeStr, maxPageSize)
+			return 0, 0, customerrors.Validationf("Invalid size '%s': must be between 1 and %d", sizeStr, maxPageSize)
 		}
 	}
 

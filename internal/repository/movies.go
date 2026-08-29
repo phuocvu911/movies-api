@@ -8,14 +8,17 @@ import (
 	"strings"
 )
 
+// MovieRepository manages movie data in the database
 type MovieRepository struct {
 	db *sql.DB
 }
 
+// NewMovieRepository creates a new MovieRepository with the given database connection
 func NewMovieRepository(db *sql.DB) *MovieRepository {
 	return &MovieRepository{db: db}
 }
 
+// GetAll queries movies from the database using optional filters and pagination
 func (r *MovieRepository) GetAll(filter models.MovieFilter, limit, offset int) ([]models.Movie, int, error) {
 	conditions := []string{}
 	args := []any{}
@@ -81,7 +84,7 @@ func (r *MovieRepository) GetAll(filter models.MovieFilter, limit, offset int) (
 	return movies, total, nil
 }
 
-// Search searches for movies by title (partial match, case-insensitive).
+// Search searches for movies by title (partial match, case-insensitive) with pagination.
 func (r *MovieRepository) Search(title string, limit, offset int) ([]models.Movie, int, error) {
 	var total int
 	err := r.db.QueryRow("SELECT COUNT (*) FROM movies WHERE LOWER(title) LIKE ?", "%"+title+"%").Scan(&total)
@@ -117,6 +120,7 @@ func (r *MovieRepository) Search(title string, limit, offset int) ([]models.Movi
 	return movies, total, nil
 }
 
+// Create inserts a movie with its fields and its genre and actor associations into the database
 func (r *MovieRepository) Create(input models.MovieRequest) (models.Movie, error) {
 	tx, err := r.db.Begin()
 	if err != nil {
@@ -163,6 +167,7 @@ func (r *MovieRepository) Create(input models.MovieRequest) (models.Movie, error
 	}, nil
 }
 
+// GetByID queries a movie by its ID
 func (r *MovieRepository) GetByID(id int64) (models.Movie, error) {
 	var movie models.Movie
 	err := r.db.QueryRow("SELECT id, title, release_year, duration FROM movies WHERE id = ?", id).Scan(&movie.ID, &movie.Title, &movie.Year, &movie.Duration)
@@ -172,6 +177,7 @@ func (r *MovieRepository) GetByID(id int64) (models.Movie, error) {
 	return movie, err
 }
 
+// Update updates a movie record and its genre and actor associations in a transaction.
 func (r *MovieRepository) Update(id int64, u models.MoviePatch) error {
 	var sets []string
 	var args []any
@@ -249,6 +255,8 @@ func (r *MovieRepository) Update(id int64, u models.MoviePatch) error {
 	return tx.Commit()
 }
 
+// Delete deletes a movie record from the database.
+// Associated records prevent deletion unless force is true.
 func (r *MovieRepository) Delete(id int64, force bool) error {
 	var genreCount int
 	err := r.db.QueryRow("SELECT COUNT(*) FROM movie_genre WHERE movie_id = ?", id).Scan(&genreCount)
@@ -282,6 +290,7 @@ func (r *MovieRepository) Delete(id int64, force bool) error {
 	return nil
 }
 
+// GetActorsByMovieID queries actors associated with a movie using pagination.
 func (r *MovieRepository) GetActorsByMovieID(movieID int64, limit, offset int) ([]models.Actor, int, error) {
 	var total int
 	err := r.db.QueryRow("SELECT COUNT (*) FROM movie_actor WHERE movie_id = ?", movieID).Scan(&total)
@@ -319,6 +328,7 @@ func (r *MovieRepository) GetActorsByMovieID(movieID int64, limit, offset int) (
 	return actors, total, nil
 }
 
+// GetDetailByID queried a movie together with its associated genre and actorIDs.
 func (r *MovieRepository) GetDetailByID(id int64) (models.MovieDetail, error) {
 	var movie models.MovieDetail
 
